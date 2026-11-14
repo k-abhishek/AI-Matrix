@@ -2,7 +2,6 @@ import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import middie from '@fastify/middie';
-import fastifyStatic from '@fastify/static';
 import buildApp from './app';
 import env from './config/env';
 import logger from './lib/logger';
@@ -84,37 +83,8 @@ import { connectMongoDB, disconnectMongoDB } from './lib/mongoose';
       });
     }
   } else {
-    // Prod: serve static files if dist exists
-    const clientDist = path.resolve(__dirname, '../../client/dist');
-    if (fs.existsSync(clientDist)) {
-      await app.register(fastifyStatic, {
-        root: clientDist,
-        prefix: '/',
-        wildcard: false,
-        setHeaders: (res, pathName) => {
-          if (pathName.includes('assets')) {
-            res.header('Cache-Control', 'public, max-age=31536000, immutable');
-          } else if (pathName.endsWith('.html') || pathName.endsWith('/')) {
-            res.header('Cache-Control', 'public, max-age=0, must-revalidate');
-          }
-        },
-      });
-
-      app.setNotFoundHandler(async (request, reply) => {
-        const url = request.url.split('?')[0];
-        if (
-          url.startsWith('/api') ||
-          url.startsWith('/documentation') ||
-          url.startsWith('/docs') ||
-          /\.(json|xml|txt|ico|png|jpg|jpeg|svg|map)$/i.test(url)
-        ) {
-          return notFoundHandler(request, reply);
-        }
-        return reply
-          .header('Cache-Control', 'public, max-age=0, must-revalidate')
-          .sendFile('index.html');
-      });
-    }
+    // Prod: pure backend API server — do not serve frontend assets
+    app.setNotFoundHandler(notFoundHandler);
   }
 
   // Graceful shutdown

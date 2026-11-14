@@ -3,10 +3,17 @@ import env from "../config/env";
 import logger from "./logger";
 import dns from "node:dns";
 
-// Override local DNS resolver for Node.js
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
+// Override local DNS resolver for Node.js in development if needed
+if (process.env.NODE_ENV !== "production") {
+  dns.setServers(["8.8.8.8", "8.8.4.4"]);
+}
 
 export const connectMongoDB = async (): Promise<void> => {
+  // Avoid re-connecting if already connected or connecting in serverless warm invocations
+  if (mongoose.connection.readyState >= 1) {
+    return;
+  }
+
   try {
     mongoose.connection.on("connected", () => {
       logger.info("MongoDB connection is successful");

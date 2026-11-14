@@ -6,13 +6,34 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
 
 export type AuthTokenProvider = () => string | null | Promise<string | null>;
 
+/**
+ * Resolves and normalizes the backend API base URL from environment variables.
+ * Handles trailing slashes, surrounding quotes, and ensures the '/api' prefix is preserved.
+ */
+export function resolveApiBaseUrl(rawUrl?: string): string {
+  if (!rawUrl) return '/api';
+
+  // Strip wrapping quotes and trailing whitespace/slashes
+  let clean = rawUrl.trim().replace(/^['"]|['"]$/g, '').replace(/\/+$/, '');
+  if (!clean) return '/api';
+
+  // Ensure /api suffix exists on the base URL (unless it's just '/')
+  if (!clean.endsWith('/api')) {
+    clean = `${clean}/api`;
+  }
+
+  return clean;
+}
+
+const DEFAULT_BASE_URL = resolveApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
+
 class ApiClient {
   private baseURL: string;
   private defaultTimeout: number;
   private tokenProvider: AuthTokenProvider | null = null;
 
-  constructor(baseURL = '/api', defaultTimeout = 15000) {
-    this.baseURL = baseURL;
+  constructor(baseURL: string = DEFAULT_BASE_URL, defaultTimeout = 15000) {
+    this.baseURL = resolveApiBaseUrl(baseURL);
     this.defaultTimeout = defaultTimeout;
   }
 
@@ -35,7 +56,14 @@ class ApiClient {
 
   private buildUrl(path: string, params?: RequestOptions['params']): string {
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
-    const url = new URL(`${this.baseURL}${cleanPath}`, window.location.origin);
+    const isAbsolute = /^https?:\/\//i.test(this.baseURL);
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
+
+    const fullBase = isAbsolute
+      ? this.baseURL.replace(/\/+$/, '')
+      : `${origin}${this.baseURL.startsWith('/') ? '' : '/'}${this.baseURL}`.replace(/\/+$/, '');
+
+    const url = new URL(`${fullBase}${cleanPath}`);
 
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
@@ -45,7 +73,8 @@ class ApiClient {
       });
     }
 
-    return `${url.pathname}${url.search}`;
+    // Preserve full absolute origin for cross-origin backend deployments
+    return isAbsolute ? url.toString() : `${url.pathname}${url.search}`;
   }
 
   public async request<T = unknown>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -120,6 +149,6 @@ class ApiClient {
   }
 }
 
-export const apiClient = new ApiClient('/api');
+export const apiClient = new ApiClient();
 export default apiClient;
 

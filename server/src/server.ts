@@ -16,14 +16,6 @@ import { connectMongoDB, disconnectMongoDB } from "./lib/mongoose";
   // Startup recovery: mark previously RUNNING crawl runs as INTERRUPTED
   await crawlService.recoverDanglingRuns();
 
-  // Standard robots.txt route for search engines and crawlers
-  // app.get("/robots.txt", async (_request, reply) => {
-  //   return reply
-  //     .header("Cache-Control", "public, max-age=86400")
-  //     .type("text/plain")
-  //     .send("User-agent: *\nAllow: /\n");
-  // });
-
   // 404 handler for unmatched routes
   app.setNotFoundHandler(notFoundHandler);
 
@@ -47,7 +39,7 @@ import { connectMongoDB, disconnectMongoDB } from "./lib/mongoose";
 
   await app.listen({ port: env.PORT, host: "0.0.0.0" });
   logger.info(
-    `Website Crawler Backend running on port ${env.PORT} in ${env.NODE_ENV} mode`,
+    `Matrix Backend running on port ${env.PORT} in ${env.NODE_ENV} mode`,
   );
   logger.info(`API Base URL: http://localhost:${env.PORT}/api`);
   logger.info(`Swagger UI: http://localhost:${env.PORT}/documentation`);

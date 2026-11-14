@@ -70,12 +70,35 @@
 }
 
 @layer base {
+  html,
+  :root {
+    /* Fluid responsive typography scaling: ~14.5px on mobile, ~15.5px on tablet, 16px on desktop */
+    font-size: clamp(0.9rem, 0.85rem + 0.25vw, 1rem);
+    -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   * {
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground font-sans antialiased text-base;
+    font-size: 1rem;
+    line-height: 1.5;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Ensure form controls inherit consistent typography and prevent iOS zoom on focus */
+  input,
+  textarea,
+  select,
+  button {
+    font-family: inherit;
+    font-size: 1rem;
   }
 
   /* Modern Slick Global Scrollbar */

@@ -17,12 +17,12 @@ import { connectMongoDB, disconnectMongoDB } from "./lib/mongoose";
   await crawlService.recoverDanglingRuns();
 
   // Standard robots.txt route for search engines and crawlers
-  app.get("/robots.txt", async (_request, reply) => {
-    return reply
-      .header("Cache-Control", "public, max-age=86400")
-      .type("text/plain")
-      .send("User-agent: *\nAllow: /\n");
-  });
+  // app.get("/robots.txt", async (_request, reply) => {
+  //   return reply
+  //     .header("Cache-Control", "public, max-age=86400")
+  //     .type("text/plain")
+  //     .send("User-agent: *\nAllow: /\n");
+  // });
 
   // 404 handler for unmatched routes
   app.setNotFoundHandler(notFoundHandler);

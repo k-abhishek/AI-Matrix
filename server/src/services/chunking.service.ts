@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 import { hashContent } from '../utils/hashing';
 import { ChunkItem, ChunkOptions } from '../types';
 
@@ -22,7 +22,7 @@ export class ChunkingService {
       if (trimmed.length > 0) {
         return [
           {
-            id: uuidv4(),
+            id: crypto.randomUUID(),
             crawlerId: meta.crawlerId,
             pageId: meta.pageId,
             url: meta.url,
@@ -83,7 +83,7 @@ export class ChunkingService {
     }
 
     return chunks.map((content, idx) => ({
-      id: uuidv4(),
+      id: crypto.randomUUID(),
       crawlerId: meta.crawlerId,
       pageId: meta.pageId,
       url: meta.url,

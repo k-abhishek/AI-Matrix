@@ -1,5 +1,5 @@
 import { FastifyPluginAsync } from "fastify";
-import { v4 as uuidv4 } from "uuid";
+import crypto from "crypto";
 import { ChatGroq } from "@langchain/groq";
 import { createAgent } from "langchain";
 import {
@@ -93,7 +93,7 @@ const chatRoutes: FastifyPluginAsync = async (fastify) => {
       const chatId =
         req.body.chatId && req.body.chatId.trim() !== ""
           ? req.body.chatId.trim()
-          : uuidv4();
+          : crypto.randomUUID();
 
       try {
         // Retrieve or initialize conversation in MongoDB

@@ -1,5 +1,4 @@
 import crypto from 'crypto';
-import { v5 as uuidv5 } from 'uuid';
 
 // Fixed namespace UUID for deterministic point IDs in Qdrant
 const QDRANT_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
@@ -9,6 +8,37 @@ const QDRANT_NAMESPACE = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
  */
 export function hashContent(content: string): string {
   return crypto.createHash('sha256').update(content.trim()).digest('hex');
+}
+
+/**
+ * Generates an RFC 4122 compliant UUID v5 string using SHA-1 and a namespace.
+ * Eliminates ESM external dependencies in CommonJS/Lambda runtimes.
+ */
+function uuidv5(name: string, namespace: string): string {
+  const nsBuffer = Buffer.from(namespace.replace(/-/g, ''), 'hex');
+  const nameBuffer = Buffer.from(name, 'utf8');
+  const hash = crypto.createHash('sha1').update(Buffer.concat([nsBuffer, nameBuffer])).digest();
+
+  // Set version to 5 (0101)
+  const b6 = (hash[6] & 0x0f) | 0x50;
+  // Set variant to RFC 4122 (10xx)
+  const b8 = (hash[8] & 0x3f) | 0x80;
+
+  const hex = Buffer.concat([
+    hash.subarray(0, 6),
+    Buffer.from([b6]),
+    hash.subarray(7, 8),
+    Buffer.from([b8]),
+    hash.subarray(9, 16),
+  ]).toString('hex');
+
+  return [
+    hex.substring(0, 8),
+    hex.substring(8, 12),
+    hex.substring(12, 16),
+    hex.substring(16, 20),
+    hex.substring(20, 32),
+  ].join('-');
 }
 
 /**

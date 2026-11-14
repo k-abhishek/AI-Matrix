@@ -1,0 +1,145 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum CrawlRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  PARTIALLY_COMPLETED
+  FAILED
+  CANCELLED
+  INTERRUPTED
+}
+
+enum PageStatus {
+  DISCOVERED
+  QUEUED
+  PROCESSING
+  FETCHED
+  SKIPPED
+  FAILED
+  COMPLETED
+}
+
+model Crawler {
+  id              String         @id @default(uuid())
+  name            String
+  sitemapUrl      String
+  baseUrl         String
+  allowedHosts    String[]
+  includePatterns String[]       @default([])
+  excludePatterns String[]       @default([])
+  settings        Json?
+  enabled         Boolean        @default(true)
+  isRunning       Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  crawlRuns       CrawlRun[]
+  crawledPages    CrawledPage[]
+
+  @@map("crawlers")
+}
+
+model CrawlRun {
+  id                 String         @id @default(uuid())
+  crawlerId          String
+  status             CrawlRunStatus @default(PENDING)
+  totalPages         Int            @default(0)
+  discoveredPages    Int            @default(0)
+  queuedPages        Int            @default(0)
+  processingPages    Int            @default(0)
+  fetchedPages       Int            @default(0)
+  cleanedPages       Int            @default(0)
+  skippedPages       Int            @default(0)
+  failedPages        Int            @default(0)
+  totalChunks        Int            @default(0)
+  embeddedChunks     Int            @default(0)
+  storedChunks       Int            @default(0)
+  storageUsedBytes   BigInt         @default(0)
+  averageFetchTimeMs Float          @default(0)
+  errorMessage       String?
+  startedAt          DateTime?
+  completedAt        DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  crawler            Crawler        @relation(fields: [crawlerId], references: [id], onDelete: Cascade)
+  pages              CrawlRunPage[]
+
+  @@index([crawlerId])
+  @@index([status])
+  @@map("crawl_runs")
+}
+
+model CrawledPage {
+  id            String         @id @default(uuid())
+  crawlerId     String
+  url           String
+  canonicalUrl  String
+  title         String?
+  description   String?
+  contentHash   String?
+  httpStatus    Int?
+  contentBytes  Int            @default(0)
+  chunksCount   Int            @default(0)
+  status        PageStatus     @default(DISCOVERED)
+  lastCrawledAt DateTime?
+  lastError     String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  crawler       Crawler        @relation(fields: [crawlerId], references: [id], onDelete: Cascade)
+  chunks        CrawledChunk[]
+
+  @@unique([crawlerId, canonicalUrl])
+  @@index([crawlerId])
+  @@index([canonicalUrl])
+  @@map("crawled_pages")
+}
+
+model CrawledChunk {
+  id             String      @id @default(uuid())
+  pageId         String
+  qdrantPointId  String
+  chunkIndex     Int
+  contentHash    String
+  tokenCount     Int         @default(0)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  page           CrawledPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, chunkIndex])
+  @@index([pageId])
+  @@index([qdrantPointId])
+  @@map("crawled_chunks")
+}
+
+model CrawlRunPage {
+  id              String      @id @default(uuid())
+  crawlRunId      String
+  url             String
+  status          PageStatus  @default(DISCOVERED)
+  httpStatus      Int?
+  fetchDurationMs Int?
+  contentBytes    Int         @default(0)
+  chunksCount     Int         @default(0)
+  errorMessage    String?
+  processedAt     DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  crawlRun        CrawlRun    @relation(fields: [crawlRunId], references: [id], onDelete: Cascade)
+
+  @@index([crawlRunId])
+  @@index([status])
+  @@map("crawl_run_pages")
+}
+

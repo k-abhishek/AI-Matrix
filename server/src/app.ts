@@ -23,8 +23,31 @@ export const buildApp = async (
   await app.register(formbody);
 
   // CORS
+  const configuredOrigins = env.CORS_ORIGIN.split(",")
+    .map((o) => o.trim().replace(/\/+$/, ""))
+    .filter(Boolean);
+
+  const allowedOrigins = new Set([
+    ...configuredOrigins,
+    "https://ai-matrix-dun.vercel.app",
+    "https://ai-matrix-k6qw.vercel.app",
+    "http://localhost:5000",
+    "http://localhost:5173",
+  ]);
+
   await app.register(cors, {
-    origin: env.CORS_ORIGIN,
+    origin: (origin, cb) => {
+      // Allow requests with no origin (like mobile apps, curl, server-to-server)
+      if (!origin) {
+        return cb(null, true);
+      }
+      const normalizedOrigin = origin.replace(/\/+$/, "");
+      if (allowedOrigins.has("*") || allowedOrigins.has(normalizedOrigin)) {
+        return cb(null, true);
+      }
+      return cb(null, false);
+    },
+    credentials: true,
   });
 
   // Swagger (OpenAPI) specification

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Menu, Bell, Sun, Moon } from "lucide-react";
 import { cn } from "../utils/cn";
+import { useThemeContext } from "../context/ThemeContext";
 
 interface HeaderProps {
   onOpenMobileMenu: () => void;
@@ -11,24 +12,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenMobileMenu,
   className,
 }) => {
-  // Dark/Light theme state
-  const [isDark, setIsDark] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    const stored = localStorage.getItem("theme");
-    if (stored) return stored === "dark";
-    return window.matchMedia("(prefers-color-scheme: dark)").matches;
-  });
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (isDark) {
-      root.classList.add("dark");
-      localStorage.setItem("theme", "dark");
-    } else {
-      root.classList.remove("dark");
-      localStorage.setItem("theme", "light");
-    }
-  }, [isDark]);
+  const { isDark, toggleTheme } = useThemeContext();
 
   // Derive dynamic page title / breadcrumb
   // const getBreadcrumb = () => {
@@ -95,7 +79,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Theme Toggle Button */}
         <button
           type="button"
-          onClick={() => setIsDark((prev) => !prev)}
+          onClick={toggleTheme}
           aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
           className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring outline-none"
         >

@@ -4,10 +4,9 @@ import { motion, AnimatePresence } from "motion/react";
 import { AlertCircle, RefreshCw, Sparkles, Inbox } from "lucide-react";
 import PromptInput, { PromptMode } from "../components/PromptInput";
 import SearchResultCard from "../components/search/SearchResultCard";
-import SearchFiltersBar from "../components/search/SearchFiltersBar";
 import { searchApi } from "../api";
 import { useChatStore } from "../store";
-import type { SearchResultItem, SearchFilters } from "../types";
+import type { SearchResultItem } from "../types";
 
 export const SearchPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -21,13 +20,6 @@ export const SearchPage: React.FC = () => {
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Filters scope state
-  const [filters, setFilters] = useState<SearchFilters>({
-    scoreThreshold: 0.5,
-    sortBy: "relevance",
-  });
-  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   // Sync input value whenever url queryParam changes
   useEffect(() => {
@@ -80,29 +72,10 @@ export const SearchPage: React.FC = () => {
     }
   };
 
-  // Filter & sort results in client (scope for current & future filters)
-  const filteredResults = useMemo(() => {
-    let list = [...results];
-
-    // Filter by threshold
-    if (filters.scoreThreshold && filters.scoreThreshold > 0.5) {
-      list = list.filter((r) => r.score >= (filters.scoreThreshold ?? 0.5));
-    }
-
-    // Sort
-    if (filters.sortBy === "date") {
-      list.sort((a, b) => {
-        const timeA = a.metadata.crawledAt ? new Date(a.metadata.crawledAt).getTime() : 0;
-        const timeB = b.metadata.crawledAt ? new Date(b.metadata.crawledAt).getTime() : 0;
-        return timeB - timeA;
-      });
-    } else {
-      // Relevance
-      list.sort((a, b) => b.score - a.score);
-    }
-
-    return list;
-  }, [results, filters]);
+  // Sort results by relevance score
+  const sortedResults = useMemo(() => {
+    return [...results].sort((a, b) => b.score - a.score);
+  }, [results]);
 
   return (
     <div className="flex flex-1 flex-col w-full h-full min-h-0 overflow-y-auto">
@@ -124,17 +97,6 @@ export const SearchPage: React.FC = () => {
               className="border border-input/60 bg-background shadow-xs hover:border-input transition-colors"
             />
           </motion.div>
-
-          {/* Filters Bar & Result Counter */}
-          {/* {queryParam && !isLoading && !error && (
-            <SearchFiltersBar
-              filters={filters}
-              onChange={setFilters}
-              isOpen={isFiltersOpen}
-              onToggle={() => setIsFiltersOpen((prev) => !prev)}
-              totalResults={filteredResults.length}
-            />
-          )} */}
         </div>
       </div>
 
@@ -187,7 +149,7 @@ export const SearchPage: React.FC = () => {
         )}
 
         {/* Results List with Motion Animation */}
-        {!isLoading && !error && queryParam && filteredResults.length > 0 && (
+        {!isLoading && !error && queryParam && sortedResults.length > 0 && (
           <motion.div
             key={queryParam}
             initial="hidden"
@@ -204,7 +166,7 @@ export const SearchPage: React.FC = () => {
             className="flex flex-col gap-4"
           >
             <AnimatePresence mode="popLayout">
-              {filteredResults.map((result, idx) => (
+              {sortedResults.map((result, idx) => (
                 <SearchResultCard
                   key={result.id || `${result.metadata.url}-${result.metadata.chunkIndex}-${idx}`}
                   result={result}
@@ -216,7 +178,7 @@ export const SearchPage: React.FC = () => {
         )}
 
         {/* Empty State when searched but no results */}
-        {!isLoading && !error && queryParam && filteredResults.length === 0 && (
+        {!isLoading && !error && queryParam && sortedResults.length === 0 && (
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -228,7 +190,7 @@ export const SearchPage: React.FC = () => {
             <h3 className="text-base font-medium text-foreground">No matches found</h3>
             <p className="mt-1.5 max-w-sm text-sm text-muted-foreground">
               We couldn&apos;t find any indexed knowledge chunks matching &quot;{queryParam}&quot;.
-              Try adjusting your query or score filter.
+              Try adjusting your query.
             </p>
           </motion.div>
         )}

@@ -16,10 +16,20 @@ describe('ChatThread Model', () => {
           content: 'Hi there!',
           toolCalls: [
             {
-              name: 'website_scraper',
-              args: { url: 'https://example.com' },
+              name: 'search_knowledge_base',
+              args: { query: 'test query' },
               output: 'Example Content',
               toolCallId: 'call_1',
+            },
+          ],
+          citations: [
+            {
+              pageId: 'page-123',
+              crawlerId: 'crawler-456',
+              url: 'https://example.com/docs',
+              title: 'Docs',
+              score: 0.88,
+              snippet: 'Example snippet',
             },
           ],
         },
@@ -33,7 +43,10 @@ describe('ChatThread Model', () => {
     expect(thread.messages[0].content).toBe('Hello, world!');
     expect(thread.messages[1].role).toBe('assistant');
     expect(thread.messages[1].toolCalls).toHaveLength(1);
-    expect(thread.messages[1].toolCalls?.[0].name).toBe('website_scraper');
+    expect(thread.messages[1].toolCalls?.[0].name).toBe('search_knowledge_base');
+    expect(thread.messages[1].citations).toHaveLength(1);
+    expect(thread.messages[1].citations?.[0].pageId).toBe('page-123');
+    expect(thread.messages[1].citations?.[0].url).toBe('https://example.com/docs');
   });
 });
 

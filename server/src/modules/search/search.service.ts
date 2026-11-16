@@ -38,8 +38,6 @@ export class SearchService {
       ([, score]) => score >= scoreThreshold,
     );
 
-    console.log("scoredDocs", scoredDocs.length);
-
     const total = filteredDocs.length;
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;

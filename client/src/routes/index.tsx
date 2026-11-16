@@ -7,6 +7,7 @@ const AboutPage = lazy(() => import("../pages/AboutPage"));
 const KnowledgeBasePage = lazy(() => import("../pages/KnowledgeBasePage"));
 const CrawlerDetailPage = lazy(() => import("../pages/CrawlerDetailPage"));
 const ChatPage = lazy(() => import("../pages/ChatPage"));
+const SearchPage = lazy(() => import("../pages/SearchPage"));
 const NotFoundPage = lazy(() => import("../pages/NotFoundPage"));
 
 const router = createBrowserRouter([
@@ -17,6 +18,7 @@ const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: "/chat", element: <ChatPage /> },
       { path: "/chat/:chatId", element: <ChatPage /> },
+      { path: "/search", element: <SearchPage /> },
       { path: "/knowledge-base", element: <KnowledgeBasePage /> },
       { path: "/knowledge-base/:crawlerId", element: <CrawlerDetailPage /> },
       { path: "/about", element: <AboutPage /> },

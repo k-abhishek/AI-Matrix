@@ -1,5 +1,14 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface IChatCitation {
+  pageId?: string;
+  crawlerId?: string;
+  url: string;
+  title?: string;
+  score?: number;
+  snippet?: string;
+}
+
 export interface IToolCall {
   name: string;
   args?: Record<string, any>;
@@ -11,6 +20,7 @@ export interface IChatMessage {
   role: 'user' | 'assistant' | 'tool' | 'system';
   content: string;
   toolCalls?: IToolCall[];
+  citations?: IChatCitation[];
   createdAt: Date;
 }
 
@@ -21,6 +31,18 @@ export interface IChatThread extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
+
+const CitationSchema = new Schema<IChatCitation>(
+  {
+    pageId: { type: String },
+    crawlerId: { type: String },
+    url: { type: String, required: true },
+    title: { type: String },
+    score: { type: Number },
+    snippet: { type: String },
+  },
+  { _id: false }
+);
 
 const ToolCallSchema = new Schema<IToolCall>(
   {
@@ -45,6 +67,10 @@ const ChatMessageSchema = new Schema<IChatMessage>(
     },
     toolCalls: {
       type: [ToolCallSchema],
+      default: undefined,
+    },
+    citations: {
+      type: [CitationSchema],
       default: undefined,
     },
     createdAt: {

@@ -50,6 +50,10 @@ const envSchema = z.object({
   EMBEDDING_BATCH_SIZE: z.coerce.number().int().positive().default(DEFAULT_CONFIG.EMBEDDING_BATCH_SIZE),
   GOOGLE_API_KEY: z.string().optional().or(z.literal('')),
 
+  // Agent & LLM
+  GROQ_API_KEY: z.string().optional().or(z.literal('')),
+  AGENT_MODEL: z.string().default('openai/gpt-oss-20b'),
+
   // Crawler
   CRAWLER_MAX_CONCURRENCY: z.coerce.number().int().positive().default(DEFAULT_CONFIG.CRAWLER_MAX_CONCURRENCY),
   CRAWLER_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(DEFAULT_CONFIG.CRAWLER_REQUEST_TIMEOUT_MS),

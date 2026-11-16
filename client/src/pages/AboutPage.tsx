@@ -1,6 +1,5 @@
 import React from 'react';
 import Card from '../components/ui/Card';
-import ApiStatus from '../components/ApiStatus';
 
 const techDetails = [
   {
@@ -64,15 +63,6 @@ const AboutPage: React.FC = () => {
           <span className="font-semibold text-white">TypeScript</span>, and{' '}
           <span className="font-semibold text-white">Fastify</span> — unified under a single-port architecture with integrated knowledge base and AI capabilities.
         </p>
-      </section>
-
-      {/* API Health Status */}
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight text-foreground">API Health & System Status</h2>
-          <p className="text-sm text-muted-foreground">Live health telemetry from the Fastify backend server.</p>
-        </div>
-        <ApiStatus />
       </section>
 
       {/* Single-Port Architecture */}

@@ -1,5 +1,6 @@
 export * from './knowledgeBase';
 export * from './ChatThread';
+export * from './search';
 
 // Retained for backward compatibility
 export type HealthData = {

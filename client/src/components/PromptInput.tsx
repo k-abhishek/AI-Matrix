@@ -1,6 +1,18 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Paperclip, Globe, ChevronDown, Mic, ArrowUp } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "motion/react";
+import {
+  Plus,
+  Globe,
+  ChevronDown,
+  Mic,
+  ArrowUp,
+  MessageSquare,
+  Search,
+} from "lucide-react";
 import { cn } from "../utils/cn";
+
+export type PromptMode = "chat" | "search";
 
 export interface PromptInputProps {
   className?: string;
@@ -8,6 +20,9 @@ export interface PromptInputProps {
   defaultValue?: string;
   placeholder?: string;
   disabled?: boolean;
+  mode?: PromptMode;
+  defaultMode?: PromptMode;
+  onModeChange?: (mode: PromptMode) => void;
   onChange?: (value: string) => void;
   onSubmit?: (value: string) => void;
 }
@@ -18,14 +33,29 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   defaultValue = "",
   placeholder = "Ask me anything...",
   disabled = false,
+  mode: controlledMode,
+  defaultMode = "chat",
+  onModeChange,
   onChange,
   onSubmit,
 }) => {
   const [internalValue, setInternalValue] = useState(defaultValue);
+  const [internalMode, setInternalMode] = useState<PromptMode>(defaultMode);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const navigate = useNavigate();
 
   const isControlled = value !== undefined;
   const currentPrompt = isControlled ? value : internalValue;
+
+  const isModeControlled = controlledMode !== undefined;
+  const currentMode = isModeControlled ? controlledMode : internalMode;
+
+  const handleModeToggle = (newMode: PromptMode) => {
+    if (!isModeControlled) {
+      setInternalMode(newMode);
+    }
+    onModeChange?.(newMode);
+  };
 
   const adjustHeight = () => {
     const textarea = textareaRef.current;
@@ -59,8 +89,15 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   };
 
   const handleSend = () => {
-    if (!currentPrompt.trim() || disabled) return;
-    onSubmit?.(currentPrompt);
+    const trimmedPrompt = currentPrompt.trim();
+    if (!trimmedPrompt || disabled) return;
+
+    if (currentMode === "search") {
+      navigate(`/search?q=${encodeURIComponent(trimmedPrompt)}`);
+    } else {
+      onSubmit?.(currentPrompt);
+    }
+
     if (!isControlled) {
       setInternalValue("");
     }
@@ -69,6 +106,13 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       textareaRef.current.style.overflowY = "hidden";
     }
   };
+
+  const computedPlaceholder =
+    placeholder !== "Ask me anything..."
+      ? placeholder
+      : currentMode === "search"
+        ? "Search anything..."
+        : "Ask me anything...";
 
   return (
     <div
@@ -82,38 +126,86 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         disabled={disabled}
         className="flex w-full resize-none border-none bg-transparent px-4 py-3.5 text-base md:text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-0 min-h-[52px] max-h-[200px] overflow-y-hidden disabled:opacity-50"
         rows={1}
-        placeholder={placeholder}
+        placeholder={computedPlaceholder}
       />
 
-      <div className="flex items-center justify-between gap-2 p-3 pt-0">
+      <div className="flex items-center justify-between gap-2 p-2 pt-0">
         <div className="flex items-center gap-2">
           <label
             htmlFor="file-upload"
             className="hover:bg-muted text-muted-foreground hover:text-foreground flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg transition-colors"
             title="Attach file"
           >
-            <input
+            {/* <input
               type="file"
               multiple
               className="hidden"
               id="file-upload"
               disabled={disabled}
-            />
-            <Paperclip className="h-4 w-4" />
+            /> */}
+            <Plus className="h-4 w-4" />
           </label>
 
-          <button
-            type="button"
-            className="flex items-center gap-1.5 rounded-full border border-input bg-transparent hover:bg-accent hover:text-accent-foreground px-2.5 py-1 text-xs transition-colors outline-none"
-          >
-            <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-            {/*TODO:  create a dropdown to select agent */}
-            <span className="hidden sm:inline">Agent</span>
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
+          {/* Mode Toggle Switch */}
+          <div className="inline-flex items-center rounded-full bg-muted/60 p-0.5 border border-border/40 text-xs select-none">
+            <button
+              type="button"
+              onClick={() => handleModeToggle("chat")}
+              disabled={disabled}
+              className={cn(
+                "relative flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-colors outline-none",
+                currentMode === "chat"
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {currentMode === "chat" && (
+                <motion.div
+                  layoutId="prompt-mode-indicator"
+                  className="absolute inset-0 rounded-full bg-background shadow-sm border border-border/40"
+                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                />
+              )}
+              <MessageSquare className="relative z-10 h-3.5 w-3.5" />
+              <span className="relative z-10 text-xs">Chat</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleModeToggle("search")}
+              disabled={disabled}
+              className={cn(
+                "relative flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-colors outline-none",
+                currentMode === "search"
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {currentMode === "search" && (
+                <motion.div
+                  layoutId="prompt-mode-indicator"
+                  className="absolute inset-0 rounded-full bg-background shadow-sm border border-border/40"
+                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                />
+              )}
+              <Search className="relative z-10 h-3.5 w-3.5" />
+              <span className="relative z-10 text-xs">Search</span>
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
+          {currentMode === "chat" && (
+            <button
+              type="button"
+              className="flex items-center gap-1.5 rounded-full border border-input bg-transparent hover:bg-accent hover:text-accent-foreground px-2.5 py-1 text-xs transition-colors outline-none"
+            >
+              <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+              {/*TODO:  create a dropdown to select agent */}
+              <span className="hidden sm:inline">Agent</span>
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+          )}
           <button
             type="button"
             className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-colors outline-none"
@@ -127,9 +219,13 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             onClick={handleSend}
             disabled={!currentPrompt.trim() || disabled}
             className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed outline-none"
-            title="Send message"
+            title={currentMode === "search" ? "Search" : "Send message"}
           >
-            <ArrowUp className="h-4 w-4" />
+            {currentMode === "search" ? (
+              <Search className="h-4 w-4" />
+            ) : (
+              <ArrowUp className="h-4 w-4" />
+            )}
           </button>
         </div>
       </div>

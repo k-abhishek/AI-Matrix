@@ -8,7 +8,11 @@ import { useChatStore } from "../store";
 import { chatApi } from "../api";
 
 const ChatMessageSkeleton: React.FC = () => (
-  <div className="space-y-6 py-4 w-full" aria-busy="true" aria-label="Loading conversation">
+  <div
+    className="space-y-6 py-4 w-full"
+    aria-busy="true"
+    aria-label="Loading conversation"
+  >
     <div className="ml-auto w-fit max-w-lg space-y-2 p-4 rounded-2xl bg-primary/10">
       <Skeleton className="h-4 w-40 rounded bg-primary/20" />
       <Skeleton className="h-3.5 w-24 rounded bg-primary/15" />
@@ -84,7 +88,11 @@ const ChatPage: React.FC = () => {
           title,
           messages: [
             { role: "user", content: trimmed, createdAt: new Date() },
-            { role: "assistant", content: response.message, createdAt: new Date() },
+            {
+              role: "assistant",
+              content: response.message,
+              createdAt: new Date(),
+            },
           ],
         });
         setCurrentChatId(response.chatId);
@@ -190,7 +198,7 @@ const ChatPage: React.FC = () => {
                 className={`p-4 rounded-2xl text-sm shadow-sm transition-all ${
                   msg.role === "user"
                     ? "bg-primary text-primary-foreground ml-auto w-fit max-w-xl"
-                    : "bg-muted text-foreground mr-auto w-full max-w-3xl"
+                    : "text-foreground mr-auto w-fit max-w-5xl"
                 }`}
               >
                 <div className="text-xs font-semibold uppercase mb-1.5 opacity-70 tracking-wider">
@@ -227,7 +235,9 @@ const ChatPage: React.FC = () => {
 
             {messages.length === 0 && !isLoading && !error && (
               <div className="text-muted-foreground text-center py-12">
-                {chatId ? "No messages found for this thread." : "Start a new conversation by sending a prompt below."}
+                {chatId
+                  ? "No messages found for this thread."
+                  : "Start a new conversation by sending a prompt below."}
               </div>
             )}
           </>

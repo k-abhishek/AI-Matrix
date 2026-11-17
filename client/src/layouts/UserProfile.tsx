@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { ChevronsUpDown, Settings, LogOut, User, Sparkles } from 'lucide-react';
-import { cn } from '../utils/cn';
+import React, { useState, useRef, useEffect } from "react";
+import { ChevronsUpDown, Settings, LogOut, User, Sparkles } from "lucide-react";
+import { cn } from "../utils/cn";
 
 interface UserProfileProps {
   isCollapsed?: boolean;
@@ -17,9 +17,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   isCollapsed = false,
   className,
   user = {
-    name: 'Abhishek Kumar',
-    email: 'abhishek@gmail.com',
-    role: 'Pro Member',
+    name: "Abhishek Kumar",
+    email: "abhishek@gmail.com",
+    role: "Pro Member",
   },
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -40,35 +40,35 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen]);
 
   // Handle escape key
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isOpen) {
+      if (event.key === "Escape" && isOpen) {
         setIsOpen(false);
         buttonRef.current?.focus();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen]);
 
   const initials = user.name
-    .split(' ')
+    .split(" ")
     .map((n) => n[0])
-    .join('')
+    .join("")
     .substring(0, 2)
     .toUpperCase();
 
   return (
-    <div className={cn('relative p-2', className)}>
+    <div className={cn("relative p-2", className)}>
       <button
         ref={buttonRef}
         type="button"
@@ -77,13 +77,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({
         aria-haspopup="menu"
         aria-label="User account menu"
         className={cn(
-          'group flex w-full items-center rounded-lg p-2 text-left text-sm transition-colors duration-150 outline-none',
-          'hover:bg-accent/70 focus-visible:ring-2 focus-visible:ring-sidebar-ring',
-          isOpen && 'bg-accent/80',
-          isCollapsed ? 'justify-center p-1.5' : 'justify-between'
+          "group flex w-full items-center rounded-lg p-2 text-left text-sm transition-colors duration-150 outline-none",
+          "hover:bg-accent/70 focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+          isOpen && "bg-accent/80",
+          isCollapsed ? "justify-center p-1.5" : "justify-between",
         )}
       >
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className={cn("flex items-center min-w-0", isCollapsed ? "justify-center" : "gap-2.5")}>
           <div className="relative flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-lg bg-primary text-primary-foreground font-semibold text-xs shadow-sm ring-1 ring-border">
             {user.avatarUrl ? (
               <img
@@ -94,10 +94,6 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             ) : (
               <span>{initials}</span>
             )}
-            <span
-              className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-background"
-              title="Online"
-            />
           </div>
 
           {!isCollapsed && (
@@ -127,10 +123,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({
           role="menu"
           aria-orientation="vertical"
           className={cn(
-            'absolute z-50 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95 duration-150',
+            "absolute z-50 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95 duration-150",
             isCollapsed
-              ? 'left-full bottom-2 ml-2 w-56'
-              : 'bottom-full left-2 right-2 mb-2'
+              ? "left-full bottom-2 ml-2 w-56"
+              : "bottom-full left-2 right-2 mb-2",
           )}
         >
           {/* Header */}
@@ -203,4 +199,3 @@ export const UserProfile: React.FC<UserProfileProps> = ({
 };
 
 export default UserProfile;
-

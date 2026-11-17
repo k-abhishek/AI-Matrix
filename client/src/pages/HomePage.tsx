@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
 import PromptInput from "../components/PromptInput";
 import { useChatStore } from "../store";
+import CalendarCard from "@/components/home/CalendarCard";
+import EventCard from "@/components/home/EventCard";
+import PriorityCard from "@/components/home/PriorityCard";
 
 const HomePage: React.FC = () => {
   const [prompt, setPrompt] = useState("");
@@ -59,6 +62,19 @@ const HomePage: React.FC = () => {
             onSubmit={handleSend}
           />
         </motion.div>
+      </div>
+
+      {/* Dashboard Cards Grid */}
+      <div className="mt-10 w-full max-w-5xl grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-4 items-start">
+        {/* Priority card — height sized to show exactly 5 task rows */}
+        <div className="h-[464px]">
+          <PriorityCard />
+        </div>
+        {/* Right column — Calendar + Event stacked, total height matches Priority card */}
+        <div className="flex flex-col gap-4 h-[464px]">
+          <CalendarCard />
+          <EventCard />
+        </div>
       </div>
     </div>
   );

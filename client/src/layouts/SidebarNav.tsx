@@ -4,6 +4,7 @@ import {
   Info,
   BookOpen,
   Home,
+  BuildingComplex,
   LucideIcon,
 } from "lucide-react";
 import { cn } from "../utils/cn";
@@ -29,6 +30,11 @@ export const navigationItems: NavItem[] = [
     icon: BookOpen,
   },
   {
+    title: "Organization",
+    href: "/org",
+    icon: BuildingComplex,
+  },
+  {
     title: "About",
     href: "/about",
     icon: Info,
@@ -39,12 +45,14 @@ export interface SidebarNavProps {
   isCollapsed?: boolean;
   onNavigate?: () => void;
   className?: string;
+  setIsCollapsed: (isCollapsed: boolean) => void;
 }
 
 export const SidebarNav: React.FC<SidebarNavProps> = ({
-  isCollapsed = false,
+  isCollapsed = true,
   onNavigate,
   className,
+  setIsCollapsed,
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -95,6 +103,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
         {/* 2. Collapsible Chat Section */}
         <SidebarChatSection
           isCollapsed={isCollapsed}
+          setIsCollapsed={setIsCollapsed}
           onNavigate={onNavigate}
           onOpenSearch={() => setIsSearchOpen(true)}
           chatList={chatList}

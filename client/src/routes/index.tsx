@@ -4,6 +4,7 @@ import MainLayout from "../layouts/MainLayout";
 import HomePage from "../pages/HomePage";
 
 const AboutPage = lazy(() => import("../pages/AboutPage"));
+const OrgPage = lazy(() => import("../pages/OrgPage"));
 const KnowledgeBasePage = lazy(() => import("../pages/KnowledgeBasePage"));
 const CrawlerDetailPage = lazy(() => import("../pages/CrawlerDetailPage"));
 const ChatPage = lazy(() => import("../pages/ChatPage"));
@@ -21,6 +22,8 @@ const router = createBrowserRouter([
       { path: "/search", element: <SearchPage /> },
       { path: "/knowledge-base", element: <KnowledgeBasePage /> },
       { path: "/knowledge-base/:crawlerId", element: <CrawlerDetailPage /> },
+      { path: "/org", element: <OrgPage /> },
+      { path: "/org/:id", element: <OrgPage /> },
       { path: "/about", element: <AboutPage /> },
       { path: "/not-found", element: <NotFoundPage /> },
       { path: "*", element: <Navigate to="/not-found" replace /> },

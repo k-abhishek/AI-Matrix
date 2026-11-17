@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from 'react-router-dom';
 import router from './routes';
 import { ThemeProvider } from './context/ThemeContext';
+import { TooltipProvider } from './components/ui/tooltip';
 
 function App() {
   const [queryClient] = useState(
@@ -21,7 +22,9 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <RouterProvider router={router} />
+        <TooltipProvider delayDuration={300}>
+          <RouterProvider router={router} />
+        </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

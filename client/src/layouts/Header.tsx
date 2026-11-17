@@ -1,15 +1,19 @@
 import React from "react";
-import { Menu, Bell, Sun, Moon } from "lucide-react";
+import { Menu, Bell, Sun, Moon, PanelLeft } from "lucide-react";
 import { cn } from "../utils/cn";
 import { useThemeContext } from "../context/ThemeContext";
 
 interface HeaderProps {
   onOpenMobileMenu: () => void;
+  isCollapsed?: boolean;
+  onToggleSidebar?: () => void;
   className?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onOpenMobileMenu,
+  isCollapsed = false,
+  onToggleSidebar,
   className,
 }) => {
   const { isDark, toggleTheme } = useThemeContext();
@@ -30,11 +34,11 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 flex h-14 w-full items-center justify-between bg-background/80 px-4 backdrop-blur-md transition-colors sm:px-6",
+        "sticky top-0 z-30 flex h-14 w-full items-center justify-between bg-background/80 px-4 backdrop-blur-md transition-colors sm:pl-2 sm:pr-6",
         className,
       )}
     >
-      {/* Left: Mobile Menu Trigger + Dynamic Page Title/Breadcrumb */}
+      {/* Left: Mobile Menu Trigger + Sidebar Expand (collapsed) + Page Title */}
       <div className="flex items-center gap-3">
         {/* Mobile Hamburger trigger (Visible only below md) */}
         <button
@@ -45,6 +49,19 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Menu className="h-4 w-4" />
         </button>
+
+        {/* Sidebar expand button — shown in header only when sidebar is collapsed (desktop) */}
+        {isCollapsed && onToggleSidebar && (
+          <button
+            type="button"
+            onClick={onToggleSidebar}
+            aria-label="Expand sidebar"
+            title="Expand sidebar"
+            className="hidden md:flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring outline-none"
+          >
+            <PanelLeft className="h-4 w-4" />
+          </button>
+        )}
 
         {/* Dynamic Breadcrumb / Page Title */}
         {/* <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm">

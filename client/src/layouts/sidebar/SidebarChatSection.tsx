@@ -9,6 +9,7 @@ import {
 } from "../../components/ui/collapsible";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { SidebarChatItem } from "./SidebarChatItem";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../../components/ui/tooltip";
 import type { ChatThread } from "../../types";
 
 export interface SidebarChatSectionProps {
@@ -18,6 +19,7 @@ export interface SidebarChatSectionProps {
   chatList: ChatThread[];
   isLoading: boolean;
   onDeleteChat: (chatId: string) => Promise<boolean | void> | void;
+  setIsCollapsed: (isCollapsed: boolean) => void;
 }
 
 export const SidebarChatSection: React.FC<SidebarChatSectionProps> = ({
@@ -27,11 +29,11 @@ export const SidebarChatSection: React.FC<SidebarChatSectionProps> = ({
   chatList,
   isLoading,
   onDeleteChat,
+  setIsCollapsed,
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isChatOpen, setIsChatOpen] = useState(true);
-  const [isHovered, setIsHovered] = useState(false);
 
   const isChatRoute = location.pathname.startsWith("/chat");
   const last10Conversations = chatList.slice(0, 10);
@@ -49,46 +51,33 @@ export const SidebarChatSection: React.FC<SidebarChatSectionProps> = ({
 
   if (isCollapsed) {
     return (
-      <div
-        className="relative"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        <NavLink
-          to="/chat"
-          onClick={onNavigate}
-          aria-current={isChatRoute ? "page" : undefined}
-          className={cn(
-            "group relative flex items-center justify-center rounded-lg text-sm transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring h-10 w-10 mx-auto",
-            isChatRoute
-              ? "bg-accent text-accent-foreground font-medium shadow-sm"
-              : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-          )}
-        >
-          <MessageSquare
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={() => {
+              setIsCollapsed(false);
+            }}
+            aria-current={isChatRoute ? "page" : undefined}
             className={cn(
-              "h-4 w-4 shrink-0 transition-transform duration-200 group-hover:scale-105",
+              "group relative flex items-center justify-center rounded-lg text-sm transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring h-10 w-10 mx-auto",
               isChatRoute
-                ? "text-accent-foreground"
-                : "text-muted-foreground group-hover:text-foreground",
+                ? "bg-accent text-accent-foreground font-medium shadow-sm"
+                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
             )}
-            aria-hidden="true"
-          />
-        </NavLink>
-
-        {isHovered && (
-          <div
-            role="tooltip"
-            className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded-md bg-popover px-2.5 py-1 text-xs font-medium text-popover-foreground shadow-md border border-border animate-in fade-in-0 zoom-in-95 duration-150"
           >
-            Chat
-            <div
-              className="absolute -left-1 top-1/2 -translate-y-1/2 border-y-4 border-r-4 border-y-transparent border-r-border"
+            <MessageSquare
+              className={cn(
+                "h-4 w-4 shrink-0 transition-transform duration-200 group-hover:scale-105",
+                isChatRoute
+                  ? "text-accent-foreground"
+                  : "text-muted-foreground group-hover:text-foreground",
+              )}
               aria-hidden="true"
             />
-          </div>
-        )}
-      </div>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="right">Chat</TooltipContent>
+      </Tooltip>
     );
   }
 
@@ -120,7 +109,7 @@ export const SidebarChatSection: React.FC<SidebarChatSectionProps> = ({
                   : "text-muted-foreground group-hover:text-foreground",
               )}
             />
-            <span className="truncate tracking-tight font-medium">Chat</span>
+            <span className="truncate tracking-tight text-sm ">Chat</span>
           </button>
         </CollapsibleTrigger>
 

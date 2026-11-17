@@ -45,11 +45,11 @@ export interface SidebarNavProps {
   isCollapsed?: boolean;
   onNavigate?: () => void;
   className?: string;
-  setIsCollapsed: (isCollapsed: boolean) => void;
+  setIsCollapsed?: (isCollapsed: boolean) => void;
 }
 
 export const SidebarNav: React.FC<SidebarNavProps> = ({
-  isCollapsed = true,
+  isCollapsed = false,
   onNavigate,
   className,
   setIsCollapsed,

@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   Calendar,
   Video,
-  Pencil,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
@@ -87,16 +86,6 @@ function formatOffset(base: Date, offset: number): string {
   return d.toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
-    day: "numeric",
-  });
-}
-
-function formatDateLabel(base: Date, offset: number): string {
-  const d = new Date(base);
-  d.setDate(d.getDate() + offset);
-  return d.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
     day: "numeric",
   });
 }

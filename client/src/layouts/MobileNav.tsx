@@ -83,7 +83,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
 
         {/* Primary Navigation */}
         <div className="flex-1 overflow-y-auto px-2 py-4">
-          <SidebarNav onNavigate={onClose} />
+          <SidebarNav isCollapsed={false} onNavigate={onClose} />
         </div>
 
         {/* Sidebar Footer User Profile */}

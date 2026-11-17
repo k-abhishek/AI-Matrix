@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { MessageSquare, ChevronDown, Search, Plus } from "lucide-react";
 import { cn } from "../../utils/cn";
 import {
@@ -19,7 +19,7 @@ export interface SidebarChatSectionProps {
   chatList: ChatThread[];
   isLoading: boolean;
   onDeleteChat: (chatId: string) => Promise<boolean | void> | void;
-  setIsCollapsed: (isCollapsed: boolean) => void;
+  setIsCollapsed?: (isCollapsed: boolean) => void;
 }
 
 export const SidebarChatSection: React.FC<SidebarChatSectionProps> = ({
@@ -55,7 +55,7 @@ export const SidebarChatSection: React.FC<SidebarChatSectionProps> = ({
         <TooltipTrigger asChild>
           <button
             onClick={() => {
-              setIsCollapsed(false);
+              setIsCollapsed?.(false);
             }}
             aria-current={isChatRoute ? "page" : undefined}
             className={cn(

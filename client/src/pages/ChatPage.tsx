@@ -181,7 +181,7 @@ const ChatPage: React.FC = () => {
   }, [chatId, setCurrentChat, clearCurrentChat, location.state]);
 
   return (
-    <div className="flex-1 flex flex-col min-h-[calc(100vh-3.5rem)] p-6 md:p-8 max-w-6xl mx-auto w-full">
+    <div className="flex-1 flex flex-col min-h-[calc(100vh-3.5rem)] p-6 md:p-8 w-full max-w-6xl mx-auto">
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -195,9 +195,9 @@ const ChatPage: React.FC = () => {
             {messages.map((msg, index) => (
               <div
                 key={msg._id || index}
-                className={`p-4 rounded-2xl text-sm shadow-sm transition-all ${
+                className={`p-4 rounded-2xl text-sm transition-all ${
                   msg.role === "user"
-                    ? "bg-primary text-primary-foreground ml-auto w-fit max-w-xl"
+                    ? "bg-primary text-primary-foreground ml-auto w-fit max-w-xl shadow-sm"
                     : "text-foreground mr-auto w-fit max-w-5xl"
                 }`}
               >

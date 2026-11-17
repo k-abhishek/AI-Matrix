@@ -87,7 +87,6 @@ export class ChatService {
 
         Always provide polite, comprehensive, and well-structured answers.
         When citing information from the knowledge base, reference the source URLs.
-        When generating Mermaid diagrams, always wrap node labels in double quotes if they contain parentheses, brackets, commas, or special characters (e.g. Node["Label (Details)"]).
       `,
     });
 

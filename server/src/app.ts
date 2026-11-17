@@ -31,7 +31,7 @@ export const buildApp = async (
     ...configuredOrigins,
     "https://ai-matrix-dun.vercel.app",
     "https://ai-matrix-k6qw.vercel.app",
-    "http://localhost:5000",
+    "http://localhost:3000",
     "http://localhost:5173",
   ]);
 
@@ -45,9 +45,13 @@ export const buildApp = async (
       if (allowedOrigins.has("*") || allowedOrigins.has(normalizedOrigin)) {
         return cb(null, true);
       }
-      return cb(null, false);
+      return cb(new Error(`Origin '${origin}' not allowed by CORS`), false);
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
+    preflightContinue: false,
+    strictPreflight: false,
   });
 
   // Swagger (OpenAPI) specification

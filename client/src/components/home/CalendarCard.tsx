@@ -97,7 +97,7 @@ const CalendarCard: React.FC = () => {
   const dayLabel = formatOffset(today, dayOffset);
 
   return (
-    <Card className="p-4 flex-1 flex flex-col gap-3 min-h-0">
+    <Card className="p-4 flex-1 flex flex-col gap-3 min-h-0 backdrop-blur-md bg-background/30">
       {/* Header — 3 items: label | navigator | open-calendar icon */}
       <div className="flex items-center justify-between gap-2">
         {/* 1. Label */}

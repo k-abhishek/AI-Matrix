@@ -1,5 +1,5 @@
 import React, { useState, Suspense } from "react";
-import { Outlet, Link } from "react-router-dom";
+import { Outlet, Link, useLocation } from "react-router-dom";
 import { LayoutGroup } from "motion/react";
 import { PanelLeft, Grip } from "lucide-react";
 import { cn } from "../utils/cn";
@@ -8,12 +8,14 @@ import SidebarNav from "./SidebarNav";
 import UserProfile from "./UserProfile";
 import Header from "./Header";
 import MobileNav from "./MobileNav";
+import BackgroundOverlay from "../components/BackgroundOverlay";
 
 export interface MainLayoutProps {
   children?: React.ReactNode;
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+  const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState<boolean>(true);
   const [isMobileOpen, setIsMobileOpen] = useState<boolean>(false);
 
@@ -92,9 +94,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       </aside>
 
       {/* Main Layout Area: Header + Content Canvas */}
-      <div className="flex flex-1 flex-col overflow-hidden py-6 pr-4">
+      <div className="relative flex flex-1 flex-col overflow-hidden py-6 pr-4">
+        {location.pathname === "/" && <BackgroundOverlay />}
+
         {/* Top Header Bar (h-14 / 56px) */}
         <Header
+          className={location.pathname === "/" ? "" : "bg-background"}
           onOpenMobileMenu={() => setIsMobileOpen(true)}
           isCollapsed={isCollapsed}
           onToggleSidebar={() => setIsCollapsed((prev) => !prev)}
@@ -102,7 +107,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
         {/* Main Content Canvas: pure wrapper/outlet with full-height support */}
         <main
-          className="flex-1 flex flex-col overflow-y-auto bg-background rounded-b-2xl"
+          className={`flex-1 flex flex-col overflow-y-auto ${location.pathname === "/" ? "" : "bg-background"} rounded-b-2xl`}
           role="main"
         >
           <LayoutGroup id="chat-transition">

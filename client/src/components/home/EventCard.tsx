@@ -97,7 +97,7 @@ const EventCard: React.FC = () => {
   };
 
   return (
-    <Card className="p-4 flex-1 flex flex-col gap-3 min-h-0">
+    <Card className="p-4 flex-1 flex flex-col gap-3 min-h-0 backdrop-blur-md bg-background/30">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">

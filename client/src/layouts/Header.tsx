@@ -34,7 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 flex h-14 w-full items-center justify-between bg-background px-4 backdrop-blur-md transition-colors sm:pl-2 sm:pr-6 rounded-t-2xl",
+        "sticky top-0 z-30 flex h-14 w-full items-center justify-between sm:pl-2 sm:pr-6 rounded-t-2xl",
         className,
       )}
     >
@@ -45,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
           type="button"
           onClick={onOpenMobileMenu}
           aria-label="Open mobile navigation"
-          className="flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:hidden focus-visible:ring-2 focus-visible:ring-ring outline-none"
+          className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:hidden focus-visible:ring-2 focus-visible:ring-ring outline-none"
         >
           <Menu className="h-4 w-4" />
         </button>

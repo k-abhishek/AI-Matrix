@@ -23,12 +23,11 @@ const HomePage: React.FC = () => {
   return (
     <div className="flex flex-1 flex-col items-center justify-center p-6 text-center">
       {/* Hero Header */}
-
       <motion.h1
         initial={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.25 }}
-        className="text-center text-2xl leading-normal font-medium lg:text-4xl mb-10"
+        className="text-center text-2xl leading-normal font-medium lg:text-4xl mb-10 backdrop-blur-md"
       >
         Good Evening, Abhishek
         <br />
@@ -39,7 +38,7 @@ const HomePage: React.FC = () => {
       </motion.h1>
 
       {/* Prompt Input Box */}
-      <div className="bg-sidebar w-full max-w-2xl rounded-2xl p-1 pt-0 text-left">
+      <div className="bg-sidebar/30 w-full max-w-2xl rounded-2xl p-1 pt-0 text-left backdrop-blur-md">
         <div className="flex items-center gap-2 px-4 py-2 text-xs text-muted-foreground">
           <span>you can show any notification here</span>
           <span>•</span>

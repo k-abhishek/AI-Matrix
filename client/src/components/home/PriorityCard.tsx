@@ -81,7 +81,7 @@ const SOURCE_STYLES: Record<PriorityTask["source"], string> = {
 
 const PriorityCard: React.FC = () => {
   return (
-    <Card className="p-4 h-full flex flex-col gap-3">
+    <Card className="p-4 h-full flex flex-col gap-3 backdrop-blur-md bg-background/30">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">

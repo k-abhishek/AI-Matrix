@@ -18,7 +18,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [isMobileOpen, setIsMobileOpen] = useState<boolean>(false);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background font-sans antialiased">
+    <div className="flex h-screen w-full overflow-hidden bg-sidebar font-sans antialiased">
       {/* Mobile Sheet Drawer (< md) */}
       <MobileNav isOpen={isMobileOpen} onClose={() => setIsMobileOpen(false)} />
 
@@ -26,12 +26,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       <aside
         aria-label="Desktop Sidebar"
         className={cn(
-          "hidden md:flex flex-col border-r border-border bg-sidebar/50 backdrop-blur-sm transition-[width] duration-300 ease-in-out select-none",
+          "hidden md:flex flex-col bg-sidebar transition-[width] duration-300 ease-in-out select-none my-4",
           isCollapsed ? "w-16" : "w-[260px]",
         )}
       >
         {/* Top Brand Header (h-14 / 56px) */}
-        <div className="flex h-14 items-center border-b border-border px-3.5">
+        <div className="flex h-14 items-center px-3.5">
           {/* Collapsed: Grip icon centred as the brand mark */}
           {isCollapsed ? (
             <div className="flex w-full items-center justify-center">
@@ -86,13 +86,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         </div>
 
         {/* Sidebar Footer: Compact User Profile Block */}
-        <div className="border-t border-border p-2">
+        <div className="p-2">
           <UserProfile isCollapsed={isCollapsed} />
         </div>
       </aside>
 
       {/* Main Layout Area: Header + Content Canvas */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden py-6 pr-4">
         {/* Top Header Bar (h-14 / 56px) */}
         <Header
           onOpenMobileMenu={() => setIsMobileOpen(true)}
@@ -102,7 +102,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
         {/* Main Content Canvas: pure wrapper/outlet with full-height support */}
         <main
-          className="flex-1 flex flex-col min-h-[calc(100vh-3.5rem)] overflow-y-auto bg-background"
+          className="flex-1 flex flex-col overflow-y-auto bg-background rounded-b-2xl"
           role="main"
         >
           <LayoutGroup id="chat-transition">

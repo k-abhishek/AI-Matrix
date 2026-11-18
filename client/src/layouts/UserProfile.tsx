@@ -83,7 +83,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({
           isCollapsed ? "justify-center p-1.5" : "justify-between",
         )}
       >
-        <div className={cn("flex items-center min-w-0", isCollapsed ? "justify-center" : "gap-2.5")}>
+        <div
+          className={cn(
+            "flex items-center min-w-0",
+            isCollapsed ? "justify-center" : "gap-2.5",
+          )}
+        >
           <div className="relative flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-lg bg-primary text-primary-foreground font-semibold text-xs shadow-sm ring-1 ring-border">
             {user.avatarUrl ? (
               <img

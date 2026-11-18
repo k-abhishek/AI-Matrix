@@ -181,7 +181,7 @@ const ChatPage: React.FC = () => {
   }, [chatId, setCurrentChat, clearCurrentChat, location.state]);
 
   return (
-    <div className="flex-1 flex flex-col min-h-[calc(100vh-3.5rem)] p-6 md:p-8 w-full max-w-6xl mx-auto">
+    <div className="flex-1 flex flex-col min-h-[calc(100vh-7rem)] p-6 md:p-8 w-full max-w-6xl mx-auto">
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}

@@ -34,7 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 flex h-14 w-full items-center justify-between bg-background/80 px-4 backdrop-blur-md transition-colors sm:pl-2 sm:pr-6",
+        "sticky top-0 z-30 flex h-14 w-full items-center justify-between bg-background px-4 backdrop-blur-md transition-colors sm:pl-2 sm:pr-6 rounded-t-2xl",
         className,
       )}
     >

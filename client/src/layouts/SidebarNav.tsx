@@ -4,8 +4,8 @@ import {
   Info,
   BookOpen,
   Home,
-  BuildingComplex,
   LucideIcon,
+  User,
 } from "lucide-react";
 import { cn } from "../utils/cn";
 import { SearchChatModal } from "../components/chat/SearchChatModal";
@@ -30,9 +30,9 @@ export const navigationItems: NavItem[] = [
     icon: BookOpen,
   },
   {
-    title: "Organization",
+    title: "People",
     href: "/org",
-    icon: BuildingComplex,
+    icon: User,
   },
   {
     title: "About",

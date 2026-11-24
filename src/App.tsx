@@ -6,6 +6,7 @@ import router from "./routes";
 import { ThemeProvider } from "./context/ThemeContext";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { AuthProvider } from "./context/AuthContext";
+import { Toaster } from "./components/ui/sonner";
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -29,6 +30,7 @@ function App() {
         <TooltipProvider delayDuration={300}>
           <AuthProvider>
             <RouterProvider router={router} />
+            <Toaster richColors position="top-right" />
           </AuthProvider>
         </TooltipProvider>
       </ThemeProvider>

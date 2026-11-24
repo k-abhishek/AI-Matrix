@@ -5,6 +5,19 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
 }
 
 export type AuthTokenProvider = () => string | null | Promise<string | null>;
+export type WorkspaceIdProvider = () => string | null;
+
+export class ApiError extends Error {
+  public code?: string;
+  public status: number;
+
+  constructor(message: string, status: number, code?: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.code = code;
+  }
+}
 
 /**
  * Resolves and normalizes the backend API base URL from environment variables.
@@ -31,6 +44,7 @@ class ApiClient {
   private baseURL: string;
   private defaultTimeout: number;
   private tokenProvider: AuthTokenProvider | null = null;
+  private workspaceIdProvider: WorkspaceIdProvider | null = null;
 
   constructor(baseURL: string = DEFAULT_BASE_URL, defaultTimeout = 15000) {
     this.baseURL = resolveApiBaseUrl(baseURL);
@@ -43,6 +57,10 @@ class ApiClient {
    */
   public setAuthTokenProvider(provider: AuthTokenProvider | null) {
     this.tokenProvider = provider;
+  }
+
+  public setWorkspaceIdProvider(provider: WorkspaceIdProvider | null) {
+    this.workspaceIdProvider = provider;
   }
 
   public async getAuthHeaders(): Promise<Record<string, string>> {
@@ -109,6 +127,12 @@ class ApiClient {
       headers.set('Authorization', `Bearer ${token}`);
     }
 
+    // Attach workspace ID if configured
+    const workspaceId = this.workspaceIdProvider?.();
+    if (workspaceId && !headers.has('x-workspace-id')) {
+      headers.set('x-workspace-id', workspaceId);
+    }
+
     const url = this.buildUrl(path, params);
 
     try {
@@ -126,11 +150,17 @@ class ApiClient {
       const data = isJson ? await response.json() : null;
 
       if (!response.ok) {
+        const rawError = data?.error;
+        const errorCode =
+          typeof rawError === 'object' && rawError !== null
+            ? rawError.code
+            : data?.code;
         const errorMessage =
+          (typeof rawError === 'object' && rawError !== null ? rawError.message : undefined) ||
           data?.message ||
-          data?.error ||
+          (typeof rawError === 'string' ? rawError : undefined) ||
           `Request failed with status ${response.status}: ${response.statusText}`;
-        throw new Error(errorMessage);
+        throw new ApiError(errorMessage, response.status, errorCode);
       }
 
       return data as T;

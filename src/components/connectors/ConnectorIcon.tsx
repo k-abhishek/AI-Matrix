@@ -19,7 +19,7 @@ import {
 } from "../../services/brandfetch";
 
 export const CONNECTOR_DOMAINS: Record<string, string> = {
-  gmail: "google.com",
+  "google workspace": "google.com",
   "google-calendar": "google.com",
   "google-drive": "google.com",
   "google-docs": "google.com",
@@ -32,7 +32,7 @@ export const CONNECTOR_DOMAINS: Record<string, string> = {
 };
 
 export const SIMPLE_ICON_SLUGS: Record<string, string> = {
-  gmail: "gmail",
+  "google workspace": "google workspace",
   "google-calendar": "googlecalendar",
   "google-drive": "googledrive",
   "google-docs": "googledocs",
@@ -80,16 +80,11 @@ function getFallbackLucideIcon(key?: string, className = "h-5 w-5") {
   }
 }
 
-/**
- * Renders company logos and brand icons using Brandfetch Logo API:
- * https://cdn.brandfetch.io/domain/{domain}?c={CLIENT_ID}
- * with fallback to SimpleIcons and Lucide icons.
- */
 export const ConnectorIcon: React.FC<ConnectorIconProps> = ({
   connectorKey = "",
   name = "",
   domain,
-  iconUrl,
+  iconUrl: _iconUrl,
   className = "h-8 w-8 rounded-md",
 }) => {
   const [useFallback, setUseFallback] = useState(false);
@@ -98,7 +93,7 @@ export const ConnectorIcon: React.FC<ConnectorIconProps> = ({
   // 1. Resolve Brandfetch target domain
   const targetDomain =
     domain ||
-    CONNECTOR_DOMAINS[connectorKey] ||
+    CONNECTOR_DOMAINS[connectorKey.toLocaleLowerCase()] ||
     (name && name.includes(".") ? name : null) ||
     (connectorKey &&
     connectorKey !== "mcp-server" &&
@@ -118,12 +113,10 @@ export const ConnectorIcon: React.FC<ConnectorIconProps> = ({
       ? name.toLowerCase().replace(/[^a-z0-9]/g, "")
       : null);
 
-  const simpleIconsUrl =
-    iconUrl && !iconUrl.includes("assets.matrix.ai")
-      ? iconUrl
-      : simpleSlug
-        ? `https://cdn.simpleicons.org/${simpleSlug}`
-        : null;
+  // Never use the backend iconUrl field directly; rely on CDN sources only.
+  const simpleIconsUrl = simpleSlug
+    ? `https://cdn.simpleicons.org/${simpleSlug}`
+    : null;
 
   // Primary: Brandfetch Logo API
   if (!useFallback && brandfetchUrl) {

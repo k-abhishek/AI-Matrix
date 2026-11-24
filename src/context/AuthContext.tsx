@@ -23,7 +23,7 @@ const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
  * Internal provider that runs within ClerkProvider context when Clerk is configured.
  */
 const ClerkAuthConsumer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isLoaded, isSignedIn, userId, getToken: clerkGetToken, signOut: clerkSignOut } = useClerkAuth();
+  const { isLoaded, isSignedIn, userId, orgId, getToken: clerkGetToken, signOut: clerkSignOut } = useClerkAuth();
   const { user } = useClerkUser();
   const clerk = useClerk();
   const [token, setToken] = useState<string | null>(null);
@@ -54,12 +54,14 @@ const ClerkAuthConsumer: React.FC<{ children: React.ReactNode }> = ({ children }
       }
     });
 
+    apiClient.setWorkspaceIdProvider(() => orgId ?? userId ?? null);
+
     if (isSignedIn) {
       getToken();
     } else {
       setToken(null);
     }
-  }, [getToken, isSignedIn]);
+  }, [getToken, isSignedIn, orgId, userId]);
 
   const signOut = useCallback(async () => {
     try {

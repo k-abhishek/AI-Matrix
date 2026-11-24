@@ -1,11 +1,18 @@
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from '@tanstack/react-query';
 import { connectorCatalogApi, connectionApi } from '../api/connector';
 import type {
   CatalogFilterQuery,
-  CreateConnectionDto,
+  ConnectRequestDto,
   UpdateConnectionDto,
   InitiateAuthRequest,
 } from '../types';
+
+// ── Query key factory ──────────────────────────────────────────────────────
 
 export const connectorKeys = {
   catalog: (params?: CatalogFilterQuery) => ['connectors', 'catalog', params] as const,
@@ -17,9 +24,7 @@ export const connectorKeys = {
   prompts: (id: string) => ['connections', id, 'prompts'] as const,
 };
 
-// ============================================================================
-// Catalog Hooks
-// ============================================================================
+// ── Catalog hooks ──────────────────────────────────────────────────────────
 
 export function useConnectorCatalog(params?: CatalogFilterQuery) {
   return useQuery({
@@ -39,9 +44,7 @@ export function useConnectorDefinition(key: string, enabled = true) {
   });
 }
 
-// ============================================================================
-// Connections Hooks
-// ============================================================================
+// ── Connections hooks ──────────────────────────────────────────────────────
 
 export function useConnections(options?: { refetchInterval?: number | false }) {
   return useQuery({
@@ -71,15 +74,21 @@ export function useConnectionTools(connectionId: string, enabled = true) {
   });
 }
 
-export function useCreateConnection() {
+// ── Mutation: useConnectMutation ───────────────────────────────────────────
+// The main connect action. Returns the raw ConnectResponse so callers can
+// branch on isOAuthResponse().
+
+export function useConnectMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (dto: CreateConnectionDto) => connectionApi.create(dto),
+    mutationFn: (dto: ConnectRequestDto) => connectionApi.connect(dto),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: connectorKeys.allConnections });
     },
   });
 }
+
+// ── Mutation: useUpdateConnection ──────────────────────────────────────────
 
 export function useUpdateConnection() {
   const queryClient = useQueryClient();
@@ -93,6 +102,8 @@ export function useUpdateConnection() {
   });
 }
 
+// ── Mutation: useDeleteConnection ──────────────────────────────────────────
+
 export function useDeleteConnection() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -102,6 +113,8 @@ export function useDeleteConnection() {
     },
   });
 }
+
+// ── Mutation: useInitiateAuth ──────────────────────────────────────────────
 
 export function useInitiateAuth() {
   const queryClient = useQueryClient();
@@ -115,6 +128,8 @@ export function useInitiateAuth() {
   });
 }
 
+// ── Mutation: useTestConnection ────────────────────────────────────────────
+
 export function useTestConnection() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -125,6 +140,8 @@ export function useTestConnection() {
     },
   });
 }
+
+// ── Mutation: useDiscoverTools ─────────────────────────────────────────────
 
 export function useDiscoverTools() {
   const queryClient = useQueryClient();
@@ -138,6 +155,8 @@ export function useDiscoverTools() {
   });
 }
 
+// ── Mutation: useExecuteTool ───────────────────────────────────────────────
+
 export function useExecuteTool() {
   return useMutation({
     mutationFn: ({
@@ -147,7 +166,12 @@ export function useExecuteTool() {
     }: {
       connectionId: string;
       toolName: string;
-      parameters?: Record<string, any>;
+      parameters?: Record<string, unknown>;
     }) => connectionApi.executeTool(connectionId, toolName, parameters),
   });
 }
+
+// ── Re-export alias kept for components that import useCreateConnection ────
+
+/** @deprecated Prefer useConnectMutation */
+export { useConnectMutation as useCreateConnection };

@@ -32,7 +32,7 @@ export const navigationItems: NavItem[] = [
   },
   {
     title: "Connectors",
-    href: "/connectors",
+    href: "/connector",
     icon: Plug,
   },
   {

@@ -38,7 +38,7 @@ const router = createBrowserRouter([
       { path: "/search", element: <SearchPage /> },
       { path: "/knowledge-base", element: <KnowledgeBasePage /> },
       { path: "/knowledge-base/:crawlerId", element: <CrawlerDetailPage /> },
-      { path: "/connectors", element: <ConnectorPage /> },
+      { path: "/connectors", element: <Navigate to="/connector" replace /> },
       { path: "/connector", element: <ConnectorPage /> },
       { path: "/org", element: <OrgPage /> },
       { path: "/org/:id", element: <OrgPage /> },

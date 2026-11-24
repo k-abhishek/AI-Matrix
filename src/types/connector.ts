@@ -1,3 +1,7 @@
+// ============================================================================
+// Connector Platform – shared API types (matches backend contract)
+// ============================================================================
+
 export type ConnectorType = 'NATIVE' | 'MCP' | 'CUSTOM_REST';
 
 export type ConnectionAuthType =
@@ -15,7 +19,8 @@ export type ConnectionStatus =
   | 'DISCONNECTED'
   | 'ERROR'
   | 'EXPIRED'
-  | 'REVOKED';
+  | 'REVOKED'
+  | 'PENDING';
 
 export type McpTransportType =
   | 'STREAMABLE_HTTP'
@@ -29,6 +34,21 @@ export type ToolExecutionStatus =
   | 'PERMISSION_DENIED'
   | 'APPROVAL_REQUIRED';
 
+// ── Catalog auth-field descriptor ──────────────────────────────────────────
+
+export interface AuthFieldDescriptor {
+  name: string;
+  label: string;
+  type: 'text' | 'password';
+  placeholder?: string;
+  helpText?: string;
+  required: boolean;
+}
+
+export type CatalogAuthField = AuthFieldDescriptor;
+
+// ── Connector catalog item (GET /api/connectors/catalog) ──────────────────
+
 export interface ConnectorDefinition {
   id: string;
   key: string;
@@ -36,14 +56,36 @@ export interface ConnectorDefinition {
   description: string;
   type: ConnectorType;
   supportedAuth: ConnectionAuthType[];
+  /** Preferred auth when multiple options are available. */
+  recommendedAuth?: ConnectionAuthType;
+  /** Whether OAuth2 is configured and usable on the backend. */
+  oauthAvailable?: boolean;
+  /** Whether a base URL must be supplied by the user. Fallback: type is MCP or CUSTOM_REST. */
+  requiresBaseUrl?: boolean;
+  baseUrlLabel?: string;
+  baseUrlPlaceholder?: string;
+  /**
+   * Per-auth credential field descriptors.
+   * authFields[authType] = array of field definitions.
+   */
+  authFields?: Record<string, AuthFieldDescriptor[]>;
+  /** Key for icon resolution (Lucide / local SVG). */
+  iconKey?: string;
+  // Legacy field kept for backward compat (ConnectorIcon reads this)
   iconUrl?: string | null;
   docUrl?: string | null;
-  isSystem: boolean;
-  defaultConfig?: Record<string, any> | null;
-  createdAt: string;
-  updatedAt: string;
+  isSystem?: boolean;
+  /** Whether this connector is fully launched. Fallback: true. */
+  isAvailable?: boolean;
+  defaultConfig?: Record<string, unknown> | null;
+  createdAt?: string;
+  updatedAt?: string;
   connectionsCount?: number;
 }
+
+export type ConnectorCatalogItem = ConnectorDefinition;
+
+// ── Connection (GET /api/connections item) ────────────────────────────────
 
 export interface ConnectorTool {
   id: string;
@@ -51,8 +93,8 @@ export interface ConnectorTool {
   name: string;
   displayName: string;
   description: string;
-  inputSchema: Record<string, any>;
-  outputSchema?: Record<string, any> | null;
+  inputSchema: Record<string, unknown>;
+  outputSchema?: Record<string, unknown> | null;
   schemaHash?: string | null;
   isEnabled: boolean;
   requiresApproval: boolean;
@@ -77,25 +119,25 @@ export interface ConnectorPrompt {
   connectionId: string;
   name: string;
   description?: string | null;
-  arguments?: any;
+  arguments?: unknown;
 }
 
 export interface ConnectorConnection {
   id: string;
-  workspaceId: string;
-  userId: string;
-  connectorDefinitionId: string;
+  workspaceId?: string;
+  userId?: string;
+  connectorDefinitionId?: string;
   name: string;
   status: ConnectionStatus;
   authType: ConnectionAuthType;
   baseUrl?: string | null;
   mcpTransport?: McpTransportType | null;
-  config?: Record<string, any> | null;
+  config?: Record<string, unknown> | null;
   lastConnectedAt?: string | null;
   lastTestedAt?: string | null;
   lastDiscoveredAt?: string | null;
   lastErrorMessage?: string | null;
-  configVersion: number;
+  configVersion?: number;
   createdAt: string;
   updatedAt: string;
   connectorDefinition?: ConnectorDefinition;
@@ -109,11 +151,53 @@ export interface ConnectorConnection {
   };
 }
 
+// ── POST /api/connections/connect  ─────────────────────────────────────────
+
+export interface ConnectRequestDto {
+  /** Catalog key – preferred; do NOT send connectorDefinitionId. */
+  connectorKey: string;
+  name?: string;
+  authType: ConnectionAuthType;
+  baseUrl?: string;
+  mcpTransport?: McpTransportType;
+  credentials?: Record<string, string>;
+}
+
+/** Token/key/basic success → 201 */
+export interface ConnectSuccessResponse {
+  connection: ConnectorConnection;
+  toolsCount?: number;
+}
+
+/** OAuth2 flow → 200 */
+export interface ConnectOAuthResponse {
+  authUrl: string;
+}
+
+export type ConnectResponse = ConnectSuccessResponse | ConnectOAuthResponse;
+
+/** Narrows union to OAuth response */
+export function isOAuthResponse(r: ConnectResponse): r is ConnectOAuthResponse {
+  return 'authUrl' in r;
+}
+
+// ── API error shape ────────────────────────────────────────────────────────
+
+export interface ApiErrorBody {
+  error: {
+    code: string;
+    message: string;
+  };
+}
+
+// ── Legacy DTOs (kept for hooks that call older endpoints) ────────────────
+
 export interface CatalogFilterQuery {
   type?: ConnectorType;
   search?: string;
 }
 
+/** @deprecated Use ConnectRequestDto for /connect. Keep for existing hooks. */
 export interface CreateConnectionDto {
   name: string;
   authType: ConnectionAuthType;
@@ -121,17 +205,17 @@ export interface CreateConnectionDto {
   connectorKey?: string;
   baseUrl?: string;
   mcpTransport?: McpTransportType;
-  config?: Record<string, any>;
-  credentials?: Record<string, any>;
+  config?: Record<string, unknown>;
+  credentials?: Record<string, string>;
 }
 
 export interface UpdateConnectionDto {
   name?: string;
   baseUrl?: string;
   mcpTransport?: McpTransportType;
-  config?: Record<string, any>;
+  config?: Record<string, unknown>;
   status?: ConnectionStatus;
-  credentials?: Record<string, any>;
+  credentials?: Record<string, string>;
 }
 
 export interface ConnectionHealthResult {
@@ -139,11 +223,11 @@ export interface ConnectionHealthResult {
   isHealthy: boolean;
   message?: string;
   testedAt: string | Date;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export interface InitiateAuthRequest {
-  credentials?: Record<string, any>;
+  credentials?: Record<string, string>;
   apiKey?: string;
   token?: string;
   redirectBaseUrl?: string;
@@ -165,8 +249,8 @@ export interface DiscoverResult {
 
 export interface ToolExecutionResult {
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
   durationMs: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }

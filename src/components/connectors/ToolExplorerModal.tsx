@@ -255,8 +255,10 @@ export const ToolExplorerModal: React.FC<ToolExplorerModalProps> = ({
                         <tbody className="divide-y divide-border/40 font-mono text-[11px]">
                           {Object.entries(selectedTool.inputSchema.properties).map(
                             ([paramName, schema]: [string, any]) => {
-                              const isRequired =
-                                selectedTool.inputSchema?.required?.includes(paramName);
+                              const requiredList = Array.isArray(selectedTool.inputSchema?.required)
+                                ? (selectedTool.inputSchema.required as string[])
+                                : [];
+                              const isRequired = requiredList.includes(paramName);
                               return (
                                 <tr key={paramName} className="hover:bg-muted/40">
                                   <td className="p-2 pl-3 font-semibold text-foreground">

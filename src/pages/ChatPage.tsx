@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "motion/react";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import PromptInput from "../components/PromptInput";
-import { MarkdownRenderer } from "../components/chat";
+import { AssistantMessage, UserMessage } from "../components/chat";
 import Skeleton from "../components/ui/Skeleton";
 import { useChatStore } from "../store";
 import { chatApi } from "../api";
@@ -263,56 +263,13 @@ const ChatPage: React.FC = () => {
           <ChatMessageSkeleton />
         ) : (
           <>
-            {messages.map((msg, index) => (
-              <div
-                key={msg._id || index}
-                className={`p-4 rounded-2xl text-sm transition-all ${
-                  msg.role === "user"
-                    ? "bg-primary text-primary-foreground ml-auto w-fit max-w-xl shadow-sm"
-                    : "text-foreground mr-auto w-fit max-w-5xl"
-                }`}
-              >
-                <div className="text-xs font-semibold uppercase mb-1.5 opacity-70 tracking-wider">
-                  {msg.role}
-                </div>
-                {msg.role === "assistant" ? (
-                  <>
-                    {msg.content ? (
-                      <MarkdownRenderer content={msg.content} />
-                    ) : (
-                      <div className="flex items-center space-x-2 text-muted-foreground py-1">
-                        <div className="h-2 w-2 rounded-full bg-current animate-bounce [animation-delay:-0.3s]" />
-                        <div className="h-2 w-2 rounded-full bg-current animate-bounce [animation-delay:-0.15s]" />
-                        <div className="h-2 w-2 rounded-full bg-current animate-bounce" />
-                      </div>
-                    )}
-
-                    {msg.citations && msg.citations.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-border/40 flex flex-wrap gap-2 items-center">
-                        <span className="text-xs font-medium text-muted-foreground">Sources:</span>
-                        {msg.citations.map((c, ci) => (
-                          <a
-                            key={ci}
-                            href={c.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title={c.snippet || c.url}
-                            className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-muted/80 hover:bg-muted text-foreground border border-border/50 transition-colors"
-                          >
-                            <ExternalLink className="h-3 w-3 text-primary" />
-                            <span className="max-w-[180px] truncate">{c.title || c.url}</span>
-                          </a>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="whitespace-pre-wrap leading-relaxed">
-                    {msg.content}
-                  </div>
-                )}
-              </div>
-            ))}
+            {messages.map((msg, index) =>
+              msg.role === "assistant" ? (
+                <AssistantMessage key={msg._id || index} message={msg} />
+              ) : (
+                <UserMessage key={msg._id || index} message={msg} />
+              ),
+            )}
 
             {statusMessage && (
               <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/70 border border-border/50 rounded-xl px-3.5 py-2 w-fit mr-auto shadow-sm">
@@ -323,9 +280,6 @@ const ChatPage: React.FC = () => {
 
             {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
               <div className="bg-muted text-foreground mr-auto w-fit max-w-3xl rounded-2xl p-4 text-sm shadow-sm">
-                <div className="text-xs font-semibold uppercase mb-1.5 opacity-70 tracking-wider">
-                  assistant
-                </div>
                 <div className="flex items-center space-x-2 text-muted-foreground py-1">
                   <div className="h-2 w-2 rounded-full bg-current animate-bounce [animation-delay:-0.3s]" />
                   <div className="h-2 w-2 rounded-full bg-current animate-bounce [animation-delay:-0.15s]" />

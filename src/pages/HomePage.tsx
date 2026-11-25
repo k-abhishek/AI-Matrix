@@ -1,23 +1,68 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "motion/react";
+import { toast } from "sonner";
 import PromptInput from "../components/PromptInput";
 import { useChatStore } from "../store";
+import { chatApi } from "../api";
 import CalendarCard from "@/components/home/CalendarCard";
 import EventCard from "@/components/home/EventCard";
 import PriorityCard from "@/components/home/PriorityCard";
 
 const HomePage: React.FC = () => {
   const [prompt, setPrompt] = useState("");
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const [isStartingChat, setIsStartingChat] = useState(false);
   const navigate = useNavigate();
-  const { clearCurrentChat } = useChatStore();
+  const { clearCurrentChat, addChat, setCurrentChat } = useChatStore();
 
-  const handleSend = (text: string) => {
+  const handleSend = async (text: string) => {
     const trimmed = text.trim();
-    if (!trimmed) return;
+    if (!trimmed || isStartingChat) return;
 
-    clearCurrentChat();
-    navigate("/chat", { state: { initialPrompt: trimmed } });
+    setIsStartingChat(true);
+    try {
+      const initResult = await chatApi.initChat({
+        prompt: trimmed,
+        agentId: selectedAgentId || undefined,
+      });
+
+      const userMessage = {
+        role: "user" as const,
+        content: trimmed,
+        createdAt: new Date(),
+      };
+      const assistantPlaceholder = {
+        role: "assistant" as const,
+        content: "",
+        createdAt: new Date(),
+      };
+
+      clearCurrentChat();
+      addChat({
+        chatId: initResult.chatId,
+        title: initResult.title || trimmed.replace(/\s+/g, " ").slice(0, 50),
+        agentId: initResult.agentId ?? selectedAgentId,
+        agentVersionId: initResult.agentVersionId ?? null,
+        messages: [userMessage],
+      });
+      setCurrentChat(initResult.chatId, [userMessage, assistantPlaceholder]);
+
+      navigate(`/chat/${initResult.chatId}`, {
+        state: {
+          autoStream: true,
+          prompt: trimmed,
+          agentId: initResult.agentId ?? selectedAgentId ?? undefined,
+        },
+      });
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to start conversation.";
+      toast.error(message);
+      console.error("Failed to initialize chat:", err);
+    } finally {
+      setIsStartingChat(false);
+    }
   };
 
   return (
@@ -57,6 +102,9 @@ const HomePage: React.FC = () => {
           <PromptInput
             className="border border-input/60 bg-background shadow-sm"
             value={prompt}
+            disabled={isStartingChat}
+            selectedAgentId={selectedAgentId}
+            onAgentChange={setSelectedAgentId}
             onChange={(val) => setPrompt(val)}
             onSubmit={handleSend}
           />

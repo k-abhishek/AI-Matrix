@@ -13,6 +13,9 @@ const CrawlerDetailPage = lazy(() => import("../pages/CrawlerDetailPage"));
 const ConnectorPage = lazy(() => import("../pages/ConnectorPage"));
 const ChatPage = lazy(() => import("../pages/ChatPage"));
 const SearchPage = lazy(() => import("../pages/SearchPage"));
+const AgentsPage = lazy(() => import("../pages/AgentsPage"));
+const AgentBuilderPage = lazy(() => import("../pages/AgentBuilderPage"));
+const AgentPlaygroundPage = lazy(() => import("../pages/AgentPlaygroundPage"));
 const NotFoundPage = lazy(() => import("../pages/NotFoundPage"));
 
 const router = createBrowserRouter([
@@ -35,6 +38,10 @@ const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: "/chat", element: <ChatPage /> },
       { path: "/chat/:chatId", element: <ChatPage /> },
+      { path: "/agents", element: <AgentsPage /> },
+      { path: "/agents/new", element: <AgentBuilderPage /> },
+      { path: "/agents/:agentId", element: <AgentBuilderPage /> },
+      { path: "/agents/:agentId/playground", element: <AgentPlaygroundPage /> },
       { path: "/search", element: <SearchPage /> },
       { path: "/knowledge-base", element: <KnowledgeBasePage /> },
       { path: "/knowledge-base/:crawlerId", element: <CrawlerDetailPage /> },

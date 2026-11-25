@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ChatMessage, ChatThread } from '../types';
+import type { ChatMessage, ChatThread, StatusStep } from '../types';
 import { chatApi } from '../api/chat';
 
 export interface ChatState {
@@ -24,6 +24,12 @@ export interface ChatState {
   addMessage: (message: ChatMessage) => void;
   appendStreamChunk: (chunk: string) => void;
   updateLastMessage: (updates: Partial<ChatMessage>) => void;
+  addStatusStep: (
+    taskName: string,
+    status?: StatusStep['status'],
+    detail?: string
+  ) => void;
+  completeStatusSteps: (finalStatus?: 'completed' | 'error') => void;
   setIsLoading: (isLoading: boolean) => void;
   setError: (error: string | null) => void;
   reset: () => void;
@@ -141,6 +147,70 @@ export const useChatStore = create<ChatState>((set) => ({
         ...last,
         ...updates,
       };
+      return { messages: updatedMessages };
+    }),
+
+  addStatusStep: (
+    taskName: string,
+    status: StatusStep['status'] = 'in_progress',
+    detail?: string
+  ) =>
+    set((state) => {
+      if (state.messages.length === 0) return state;
+      const lastIndex = state.messages.length - 1;
+      const last = state.messages[lastIndex];
+      if (last.role !== 'assistant') return state;
+
+      const existing = last.statusSteps || [];
+      const lastStep = existing[existing.length - 1];
+
+      // Avoid duplicating consecutive identical in-progress step
+      if (
+        lastStep &&
+        lastStep.taskName === taskName &&
+        lastStep.status === 'in_progress' &&
+        status === 'in_progress'
+      ) {
+        if (detail && detail !== lastStep.detail) {
+          const updatedSteps = [...existing];
+          updatedSteps[existing.length - 1] = { ...lastStep, detail };
+          const updatedMessages = [...state.messages];
+          updatedMessages[lastIndex] = { ...last, statusSteps: updatedSteps };
+          return { messages: updatedMessages };
+        }
+        return state;
+      }
+
+      const settled = existing.map((s) =>
+        s.status === 'in_progress' ? { ...s, status: 'completed' as const } : s
+      );
+      const nextStep: StatusStep = {
+        id: `${Date.now()}-${settled.length}`,
+        taskName,
+        status,
+        detail,
+      };
+
+      const updatedMessages = [...state.messages];
+      updatedMessages[lastIndex] = {
+        ...last,
+        statusSteps: [...settled, nextStep],
+      };
+      return { messages: updatedMessages };
+    }),
+
+  completeStatusSteps: (finalStatus: 'completed' | 'error' = 'completed') =>
+    set((state) => {
+      if (state.messages.length === 0) return state;
+      const lastIndex = state.messages.length - 1;
+      const last = state.messages[lastIndex];
+      if (!last.statusSteps || last.statusSteps.length === 0) return state;
+
+      const updatedSteps = last.statusSteps.map((s) =>
+        s.status === 'in_progress' ? { ...s, status: finalStatus } : s
+      );
+      const updatedMessages = [...state.messages];
+      updatedMessages[lastIndex] = { ...last, statusSteps: updatedSteps };
       return { messages: updatedMessages };
     }),
 

@@ -1,6 +1,10 @@
 import apiClient from './client';
 import type {
   ApiResponse,
+  KnowledgeBaseDTO,
+  KnowledgeDocumentDTO,
+  CreateKnowledgeBaseDTO,
+  IngestTextDocumentDTO,
   Crawler,
   CreateCrawlerDto,
   UpdateCrawlerDto,
@@ -14,6 +18,75 @@ import type {
   HealthCheckResponse,
   ReadinessResponse,
 } from '../types';
+
+// ============================================================================
+// Knowledge Base Endpoints
+// ============================================================================
+
+export const kbApi = {
+  create: async (dto: CreateKnowledgeBaseDTO): Promise<KnowledgeBaseDTO> => {
+    const res = await apiClient.post<ApiResponse<KnowledgeBaseDTO>>('/knowledge-bases', dto);
+    return res.data!;
+  },
+
+  list: async (): Promise<KnowledgeBaseDTO[]> => {
+    const res = await apiClient.get<ApiResponse<KnowledgeBaseDTO[]>>('/knowledge-bases');
+    return res.data || [];
+  },
+
+  getById: async (kbId: string): Promise<KnowledgeBaseDTO> => {
+    const res = await apiClient.get<ApiResponse<KnowledgeBaseDTO>>(`/knowledge-bases/${kbId}`);
+    return res.data!;
+  },
+
+  update: async (
+    kbId: string,
+    dto: Partial<CreateKnowledgeBaseDTO>
+  ): Promise<KnowledgeBaseDTO> => {
+    const res = await apiClient.patch<ApiResponse<KnowledgeBaseDTO>>(
+      `/knowledge-bases/${kbId}`,
+      dto
+    );
+    return res.data!;
+  },
+
+  archive: async (kbId: string): Promise<void> => {
+    await apiClient.delete(`/knowledge-bases/${kbId}`);
+  },
+
+  listDocuments: async (kbId: string): Promise<KnowledgeDocumentDTO[]> => {
+    const res = await apiClient.get<ApiResponse<KnowledgeDocumentDTO[]>>(
+      `/knowledge-bases/${kbId}/documents`
+    );
+    return res.data || [];
+  },
+
+  ingestText: async (
+    kbId: string,
+    dto: IngestTextDocumentDTO
+  ): Promise<KnowledgeDocumentDTO> => {
+    const res = await apiClient.post<ApiResponse<KnowledgeDocumentDTO>>(
+      `/knowledge-bases/${kbId}/documents`,
+      dto
+    );
+    return res.data!;
+  },
+
+  deleteDocument: async (kbId: string, docId: string): Promise<void> => {
+    await apiClient.delete(`/knowledge-bases/${kbId}/documents/${docId}`);
+  },
+
+  testRetrieval: async (
+    kbId: string,
+    body: { query: string; topK?: number; scoreThreshold?: number; metadataFilters?: Record<string, unknown> }
+  ): Promise<unknown> => {
+    const res = await apiClient.post<ApiResponse<unknown>>(
+      `/knowledge-bases/${kbId}/test-retrieval`,
+      body
+    );
+    return res.data;
+  },
+};
 
 // ============================================================================
 // Crawler Endpoints

@@ -1,16 +1,31 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import {
   Plus,
   Globe,
+  Bot,
   ChevronDown,
+  Lock,
   Mic,
   ArrowUp,
   MessageSquare,
   Search,
 } from "lucide-react";
 import { cn } from "../utils/cn";
+import { agentApi } from "../api";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import type { AgentDTO } from "../types";
 
 export type PromptMode = "chat" | "search";
 
@@ -22,6 +37,9 @@ export interface PromptInputProps {
   disabled?: boolean;
   mode?: PromptMode;
   defaultMode?: PromptMode;
+  selectedAgentId?: string | null;
+  agentLocked?: boolean;
+  onAgentChange?: (agentId: string | null) => void;
   onModeChange?: (mode: PromptMode) => void;
   onChange?: (value: string) => void;
   onSubmit?: (value: string) => void;
@@ -35,14 +53,40 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   disabled = false,
   mode: controlledMode,
   defaultMode = "chat",
+  selectedAgentId: controlledAgentId,
+  agentLocked = false,
+  onAgentChange,
   onModeChange,
   onChange,
   onSubmit,
 }) => {
   const [internalValue, setInternalValue] = useState(defaultValue);
   const [internalMode, setInternalMode] = useState<PromptMode>(defaultMode);
+  const [internalAgentId, setInternalAgentId] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const navigate = useNavigate();
+
+  const isAgentControlled = controlledAgentId !== undefined;
+  const currentAgentId = isAgentControlled ? controlledAgentId : internalAgentId;
+
+  const { data: agents = [] } = useQuery<AgentDTO[]>({
+    queryKey: ["agents", "ACTIVE"],
+    queryFn: () => agentApi.list({ status: "ACTIVE" }),
+    staleTime: 60_000,
+    retry: false,
+  });
+
+  const publishedAgents = agents.filter((a) => Boolean(a.activeVersionId));
+  const selectableAgents = publishedAgents.length > 0 ? publishedAgents : agents;
+  const selectedAgent = selectableAgents.find((a) => a.id === currentAgentId) ?? null;
+
+  const handleSelectAgent = (nextAgentId: string | null) => {
+    if (agentLocked) return;
+    if (!isAgentControlled) {
+      setInternalAgentId(nextAgentId);
+    }
+    onAgentChange?.(nextAgentId);
+  };
 
   const isControlled = value !== undefined;
   const currentPrompt = isControlled ? value : internalValue;
@@ -116,7 +160,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   return (
     <div
-      className={cn("rounded-2xl w-full overflow-hidden shadow-sm", className)}
+      className={cn("rounded-2xl w-full shadow-sm", className)}
     >
       <textarea
         ref={textareaRef}
@@ -196,15 +240,75 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
         <div className="flex items-center gap-2">
           {currentMode === "chat" && (
-            <button
-              type="button"
-              className="flex items-center gap-1.5 rounded-full border border-input bg-transparent hover:bg-accent hover:text-accent-foreground px-2.5 py-1 text-xs transition-colors outline-none"
+            <Select
+              value={currentAgentId ?? "__default__"}
+              onValueChange={(val) =>
+                handleSelectAgent(val === "__default__" ? null : val)
+              }
+              disabled={disabled || agentLocked}
             >
-              <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-              {/*TODO:  create a dropdown to select agent */}
-              <span className="hidden sm:inline">Agent</span>
-              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-            </button>
+              <SelectTrigger
+                hideIcon
+                aria-label="Select agent"
+                title={
+                  agentLocked
+                    ? "Agent is pinned for this conversation"
+                    : "Select an agent (defaults to platform assistant)"
+                }
+                className={cn(
+                  "h-auto rounded-full border border-input bg-transparent hover:bg-accent hover:text-accent-foreground px-2.5 py-1 text-xs shadow-none focus:ring-1",
+                  (disabled || agentLocked) && "opacity-70 cursor-not-allowed",
+                )}
+              >
+                <span className="flex items-center gap-1.5">
+                  {selectedAgent ? (
+                    <Bot className="h-3.5 w-3.5 text-primary shrink-0" />
+                  ) : (
+                    <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  )}
+                  <span className="hidden sm:inline max-w-[140px] truncate">
+                    <SelectValue placeholder="Default Agent">
+                      {selectedAgent ? selectedAgent.name : "Default Agent"}
+                    </SelectValue>
+                  </span>
+                  {agentLocked ? (
+                    <Lock className="h-3 w-3 text-muted-foreground shrink-0" />
+                  ) : (
+                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  )}
+                </span>
+              </SelectTrigger>
+
+              <SelectContent side="top" align="end" className="w-64">
+                <SelectGroup>
+                  <SelectLabel>Select Agent</SelectLabel>
+                  <SelectItem value="__default__">
+                    <span className="flex items-center gap-2">
+                      <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <span>Default Agent</span>
+                    </span>
+                  </SelectItem>
+                </SelectGroup>
+
+                {selectableAgents.length > 0 && <SelectSeparator />}
+
+                <SelectGroup>
+                  {selectableAgents.map((agent) => (
+                    <SelectItem key={agent.id} value={agent.id}>
+                      <span className="flex items-center justify-between gap-2 w-full">
+                        <span className="flex items-center gap-2 min-w-0">
+                          <Bot className="h-3.5 w-3.5 text-primary shrink-0" />
+                          <span className="truncate">{agent.name}</span>
+                        </span>
+                        <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0">
+                          {agent.visibility === "WORKSPACE" ? "Team" : "Personal"}
+                        </span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           )}
           <button
             type="button"

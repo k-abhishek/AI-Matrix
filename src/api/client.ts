@@ -10,12 +10,22 @@ export type WorkspaceIdProvider = () => string | null;
 export class ApiError extends Error {
   public code?: string;
   public status: number;
+  public details?: unknown;
+  public errors?: Array<{ field: string; message: string }>;
 
-  constructor(message: string, status: number, code?: string) {
+  constructor(
+    message: string,
+    status: number,
+    code?: string,
+    details?: unknown,
+    errors?: Array<{ field: string; message: string }>
+  ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
+    this.details = details;
+    this.errors = errors;
   }
 }
 
@@ -160,7 +170,10 @@ class ApiClient {
           data?.message ||
           (typeof rawError === 'string' ? rawError : undefined) ||
           `Request failed with status ${response.status}: ${response.statusText}`;
-        throw new ApiError(errorMessage, response.status, errorCode);
+        const errorDetails =
+          typeof rawError === 'object' && rawError !== null ? rawError.details : data?.details;
+        const fieldErrors = Array.isArray(data?.errors) ? data.errors : undefined;
+        throw new ApiError(errorMessage, response.status, errorCode, errorDetails, fieldErrors);
       }
 
       return data as T;

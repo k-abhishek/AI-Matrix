@@ -1,12 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "motion/react";
-import { Loader2 } from "lucide-react";
 import PromptInput from "../components/PromptInput";
 import { AssistantMessage, UserMessage } from "../components/chat";
 import Skeleton from "../components/ui/Skeleton";
 import { useChatStore } from "../store";
-import { chatApi } from "../api";
+import { chatApi, runApi, type StreamChatCallbacks } from "../api";
 
 const ChatMessageSkeleton: React.FC = () => (
   <div
@@ -31,6 +30,7 @@ const ChatPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const {
+    chatList,
     messages,
     currentChatId,
     setCurrentChat,
@@ -38,19 +38,25 @@ const ChatPage: React.FC = () => {
     addMessage,
     appendStreamChunk,
     updateLastMessage,
+    addStatusStep,
+    completeStatusSteps,
     addChat,
     clearCurrentChat,
   } = useChatStore();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [isResolvingApproval, setIsResolvingApproval] = useState(false);
   const [isFetchingThread, setIsFetchingThread] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const skipNextFetchRef = useRef<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const initialPromptHandledRef = useRef(false);
+  const autoStreamHandledRef = useRef<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  const activeThread = chatList.find((c) => c.chatId === (chatId || currentChatId));
+  const pinnedAgentId = activeThread?.agentId ?? selectedAgentId;
 
   // Clean up any pending abort controller on unmount
   useEffect(() => {
@@ -66,7 +72,157 @@ const ChatPage: React.FC = () => {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     });
     return () => cancelAnimationFrame(frameId);
-  }, [messages.length, isLoading, isFetchingThread, statusMessage]);
+  }, [messages.length, isLoading, isFetchingThread]);
+
+  const buildStreamCallbacks = useCallback(
+    (abortSignal: AbortSignal): StreamChatCallbacks => ({
+      onStatus: (data) => {
+        if (data.taskName) {
+          addStatusStep(data.taskName, "in_progress");
+        } else if (data.status === "searching_kb") {
+          addStatusStep("Searching knowledge base...", "in_progress");
+        } else if (data.tool) {
+          addStatusStep(`Using ${data.tool}...`, "in_progress");
+        } else {
+          addStatusStep("Thinking...", "in_progress");
+        }
+      },
+      onToken: (chunk) => {
+        completeStatusSteps("completed");
+        appendStreamChunk(chunk);
+      },
+      onSkillLoad: (data) => {
+        addStatusStep(`Loaded skill: ${data.skillName}`, "completed", data.skillKey);
+      },
+      onToolStart: (data) => {
+        if (data.tool === "search_knowledge_base") {
+          addStatusStep("Searching knowledge base...", "in_progress");
+        } else {
+          addStatusStep(data.taskName || `Using ${data.tool}...`, "in_progress");
+        }
+      },
+      onToolEnd: (data) => {
+        completeStatusSteps("completed");
+        if (data.citations && data.citations.length > 0) {
+          updateLastMessage({ citations: data.citations });
+        }
+      },
+      onApprovalRequired: (data) => {
+        completeStatusSteps("completed");
+        addStatusStep(`Waiting for approval: ${data.toolName}`, "in_progress");
+        updateLastMessage({
+          approval: { ...data, status: "PENDING" },
+        });
+      },
+      onConnectionIssue: (data) => {
+        completeStatusSteps("error");
+        updateLastMessage({ connectionIssue: data });
+      },
+      onDone: (data) => {
+        completeStatusSteps("completed");
+        updateLastMessage({
+          ...(data.message ? { content: data.message } : {}),
+          ...(data.toolCalls && data.toolCalls.length > 0 ? { toolCalls: data.toolCalls } : {}),
+          ...(data.citations && data.citations.length > 0 ? { citations: data.citations } : {}),
+        });
+      },
+      onError: (err) => {
+        if (abortSignal.aborted) return;
+        completeStatusSteps("error");
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to stream message. Please try again.";
+        setError(message);
+        console.error("Error streaming chat response:", err);
+      },
+    }),
+    [appendStreamChunk, updateLastMessage, addStatusStep, completeStatusSteps],
+  );
+
+  const startPendingStreamForChat = useCallback(
+    async (targetChatId: string, initialPrompt?: string, initialAgentId?: string | null) => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
+      setIsLoading(true);
+      setError(null);
+      addStatusStep("Thinking...", "in_progress");
+
+      try {
+        await chatApi.streamMessage(
+          {
+            chatId: targetChatId,
+            prompt: initialPrompt || "",
+            agentId: initialAgentId || undefined,
+          },
+          buildStreamCallbacks(abortController.signal),
+          abortController.signal,
+        );
+      } catch (err) {
+        if (!abortController.signal.aborted) {
+          completeStatusSteps("error");
+          const message =
+            err instanceof Error
+              ? err.message
+              : "Failed to stream message. Please try again.";
+          setError(message);
+          console.error("Error streaming chat:", err);
+        }
+      } finally {
+        setIsLoading(false);
+        completeStatusSteps("completed");
+      }
+    },
+    [buildStreamCallbacks, addStatusStep, completeStatusSteps],
+  );
+
+  const handleResolveApproval = async (approvalId: string, approved: boolean) => {
+    if (isResolvingApproval) return;
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    setIsResolvingApproval(true);
+    setIsLoading(true);
+    setError(null);
+    addStatusStep(
+      approved ? "Executing approved tool..." : "Tool rejected, continuing...",
+      "in_progress",
+    );
+
+    updateLastMessage({
+      approval: {
+        ...(messages[messages.length - 1]?.approval as any),
+        approvalId,
+        status: approved ? "APPROVED" : "REJECTED",
+      },
+    });
+
+    try {
+      await runApi.resolveApprovalStream(
+        approvalId,
+        approved,
+        buildStreamCallbacks(abortController.signal),
+        abortController.signal,
+      );
+    } catch (err) {
+      if (!abortController.signal.aborted) {
+        const message =
+          err instanceof Error ? err.message : "Failed to resolve approval.";
+        setError(message);
+      }
+    } finally {
+      setIsResolvingApproval(false);
+      setIsLoading(false);
+      completeStatusSteps("completed");
+    }
+  };
 
   const handleSend = async (text: string) => {
     const trimmed = text.trim();
@@ -78,95 +234,62 @@ const ChatPage: React.FC = () => {
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
 
-    // Add user message
     addMessage({
       role: "user",
       content: trimmed,
       createdAt: new Date(),
     });
-
-    // Add initial placeholder for assistant stream
     addMessage({
       role: "assistant",
       content: "",
+      statusSteps: [
+        { id: `${Date.now()}-0`, taskName: "Thinking...", status: "in_progress" },
+      ],
       createdAt: new Date(),
     });
 
     setIsLoading(true);
     setError(null);
-    setStatusMessage(null);
     setPrompt("");
 
-    let resolvedChatId = chatId;
-    let accumulatedText = "";
-
     try {
-      await chatApi.streamMessage(
-        {
+      if (!chatId) {
+        // Brand-new conversation from /chat: init via POST /api/chat, populate URL, then stream
+        const initRes = await chatApi.initChat({
           prompt: trimmed,
-          chatId,
-        },
-        {
-          onInit: (data) => {
-            if (data.chatId) {
-              resolvedChatId = data.chatId;
-            }
-          },
-          onToken: (chunk) => {
-            accumulatedText += chunk;
-            appendStreamChunk(chunk);
-          },
-          onToolStart: (data) => {
-            if (data.tool === "search_knowledge_base") {
-              setStatusMessage("Searching knowledge base...");
-            } else {
-              setStatusMessage(`Using ${data.tool}...`);
-            }
-          },
-          onToolEnd: (data) => {
-            setStatusMessage(null);
-            if (data.citations && data.citations.length > 0) {
-              updateLastMessage({ citations: data.citations });
-            }
-          },
-          onDone: (data) => {
-            setStatusMessage(null);
-            if (data.citations && data.citations.length > 0) {
-              updateLastMessage({ citations: data.citations });
-            }
+          agentId: selectedAgentId || undefined,
+        });
+        skipNextFetchRef.current = initRes.chatId;
+        addChat({
+          chatId: initRes.chatId,
+          title: initRes.title || trimmed.replace(/\s+/g, " ").slice(0, 50),
+          agentId: initRes.agentId ?? selectedAgentId,
+          agentVersionId: initRes.agentVersionId ?? null,
+          messages: [{ role: "user", content: trimmed, createdAt: new Date() }],
+        });
+        setCurrentChatId(initRes.chatId);
+        navigate(`/chat/${initRes.chatId}`, { replace: true });
 
-            if (!chatId && resolvedChatId) {
-              const title = trimmed.replace(/\s+/g, " ").slice(0, 50);
-              skipNextFetchRef.current = resolvedChatId;
-              addChat({
-                chatId: resolvedChatId,
-                title,
-                messages: [
-                  { role: "user", content: trimmed, createdAt: new Date() },
-                  {
-                    role: "assistant",
-                    content: accumulatedText || data.message,
-                    citations: data.citations,
-                    createdAt: new Date(),
-                  },
-                ],
-              });
-              setCurrentChatId(resolvedChatId);
-              navigate(`/chat/${resolvedChatId}`, { replace: true });
-            }
+        await chatApi.streamMessage(
+          {
+            prompt: trimmed,
+            chatId: initRes.chatId,
+            agentId: (initRes.agentId ?? selectedAgentId) || undefined,
           },
-          onError: (err) => {
-            if (abortController.signal.aborted) return;
-            const message =
-              err instanceof Error
-                ? err.message
-                : "Failed to stream message. Please try again.";
-            setError(message);
-            console.error("Error streaming chat response:", err);
+          buildStreamCallbacks(abortController.signal),
+          abortController.signal,
+        );
+      } else {
+        await chatApi.streamMessage(
+          {
+            prompt: trimmed,
+            chatId,
+            agentId: pinnedAgentId || undefined,
           },
-        },
-        abortController.signal,
-      );
+          buildStreamCallbacks(abortController.signal),
+          abortController.signal,
+        );
+      }
     } catch (err) {
       if (!abortController.signal.aborted) {
         const message =
@@ -178,31 +301,40 @@ const ChatPage: React.FC = () => {
       }
     } finally {
       setIsLoading(false);
-      setStatusMessage(null);
+      completeStatusSteps("completed");
     }
   };
 
-  // Handle initial prompt passed from HomePage transition
+  // Handle autoStream passed from HomePage after POST /api/chat -> navigate('/chat/:chatId')
   useEffect(() => {
-    const state = location.state as { initialPrompt?: string } | null;
-    const initialPrompt = state?.initialPrompt;
-
-    if (initialPrompt && !initialPromptHandledRef.current) {
-      initialPromptHandledRef.current = true;
+    const state = location.state as {
+      autoStream?: boolean;
+      prompt?: string;
+      agentId?: string;
+    } | null;
+    if (chatId && state?.autoStream && autoStreamHandledRef.current !== chatId) {
+      autoStreamHandledRef.current = chatId;
+      skipNextFetchRef.current = chatId;
       window.history.replaceState({}, document.title);
-      handleSend(initialPrompt);
+      const fallbackPrompt =
+        state.prompt ||
+        [...messages].reverse().find((m) => m.role === "user")?.content ||
+        "";
+      startPendingStreamForChat(chatId, fallbackPrompt, state.agentId ?? pinnedAgentId);
     }
-  }, [location.state]);
+  }, [chatId, location.state, startPendingStreamForChat, messages, pinnedAgentId]);
 
   // When chatId changes, fetch messages for that thread and update the chatscreen
   useEffect(() => {
     if (!chatId) {
-      const state = location.state as { initialPrompt?: string } | null;
-      if (state?.initialPrompt) {
-        return;
-      }
       clearCurrentChat();
       setError(null);
+      setIsFetchingThread(false);
+      return;
+    }
+
+    const state = location.state as { autoStream?: boolean } | null;
+    if (state?.autoStream || autoStreamHandledRef.current === chatId) {
       setIsFetchingThread(false);
       return;
     }
@@ -265,17 +397,15 @@ const ChatPage: React.FC = () => {
           <>
             {messages.map((msg, index) =>
               msg.role === "assistant" ? (
-                <AssistantMessage key={msg._id || index} message={msg} />
+                <AssistantMessage
+                  key={msg._id || index}
+                  message={msg}
+                  onResolveApproval={handleResolveApproval}
+                  isResolvingApproval={isResolvingApproval}
+                />
               ) : (
                 <UserMessage key={msg._id || index} message={msg} />
               ),
-            )}
-
-            {statusMessage && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/70 border border-border/50 rounded-xl px-3.5 py-2 w-fit mr-auto shadow-sm">
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-                <span>{statusMessage}</span>
-              </div>
             )}
 
             {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
@@ -316,6 +446,9 @@ const ChatPage: React.FC = () => {
             value={prompt}
             onChange={(val) => setPrompt(val)}
             onSubmit={handleSend}
+            selectedAgentId={pinnedAgentId}
+            agentLocked={Boolean(chatId)}
+            onAgentChange={setSelectedAgentId}
             disabled={isLoading || isFetchingThread}
             className="border border-input/60 bg-background shadow-sm"
           />

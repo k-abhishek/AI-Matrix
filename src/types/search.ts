@@ -32,6 +32,8 @@ export interface SearchApiResponse {
 export interface SearchFilters {
   scoreThreshold?: number;
   crawlerId?: string;
+  knowledgeBaseId?: string;
+  scope?: 'PLATFORM' | 'WORKSPACE';
   sortBy?: "relevance" | "date";
 }
 

@@ -2,6 +2,9 @@ export * from './knowledgeBase';
 export * from './ChatThread';
 export * from './search';
 export * from './connector';
+export * from './agent';
+export * from './skill';
+export * from './run';
 
 // Retained for backward compatibility
 export type HealthData = {

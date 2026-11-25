@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useSignIn, useSignUp } from "@clerk/react/legacy";
 import { AlertCircle, Info, X } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { useAuthContext } from "../../context/AuthContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -46,7 +47,58 @@ export function LoginForm({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [resetInfo, setResetInfo] = useState<string | null>(null);
 
+  const { hasPendingSession, signOut } = useAuthContext();
   const isLoaded = isSignInLoaded && isSignUpLoaded;
+
+  const isSessionExistsError = (err: any): boolean => {
+    const code = err?.errors?.[0]?.code;
+    const msg =
+      err?.errors?.[0]?.longMessage ||
+      err?.errors?.[0]?.message ||
+      err?.message ||
+      "";
+    return code === "session_exists" || /already signed in/i.test(msg);
+  };
+
+  const executeAuthSubmit = async () => {
+    if (mode === "login") {
+      if (!signIn) throw new Error("Clerk SignIn is not initialized");
+
+      const result = await signIn.create({
+        identifier: email,
+        password,
+      });
+
+      if (result.status === "complete") {
+        await setSignInActive({ session: result.createdSessionId });
+        navigate(from, { replace: true });
+      } else {
+        setErrorMessage(
+          `Additional authentication required (${result.status})`,
+        );
+      }
+    } else {
+      if (!signUp) throw new Error("Clerk SignUp is not initialized");
+
+      const result = await signUp.create({
+        emailAddress: email,
+        password,
+      });
+
+      if (result.status === "complete") {
+        await setSignUpActive({ session: result.createdSessionId });
+        navigate(from, { replace: true });
+      } else if (result.status === "missing_requirements") {
+        // Prepare email verification code
+        await signUp.prepareEmailAddressVerification({
+          strategy: "email_code",
+        });
+        setIsVerifying(true);
+      } else {
+        setErrorMessage(`Sign up status: ${result.status}`);
+      }
+    }
+  };
 
   // Handle standard Email + Password submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,44 +109,18 @@ export function LoginForm({
     setErrorMessage(null);
 
     try {
-      if (mode === "login") {
-        if (!signIn) throw new Error("Clerk SignIn is not initialized");
-
-        const result = await signIn.create({
-          identifier: email,
-          password,
-        });
-
-        if (result.status === "complete") {
-          await setSignInActive({ session: result.createdSessionId });
-          navigate(from, { replace: true });
-        } else {
-          setErrorMessage(
-            `Additional authentication required (${result.status})`,
-          );
-        }
-      } else {
-        if (!signUp) throw new Error("Clerk SignUp is not initialized");
-
-        const result = await signUp.create({
-          emailAddress: email,
-          password,
-        });
-
-        if (result.status === "complete") {
-          await setSignUpActive({ session: result.createdSessionId });
-          navigate(from, { replace: true });
-        } else if (result.status === "missing_requirements") {
-          // Prepare email verification code
-          await signUp.prepareEmailAddressVerification({
-            strategy: "email_code",
-          });
-          setIsVerifying(true);
-        } else {
-          setErrorMessage(`Sign up status: ${result.status}`);
+      await executeAuthSubmit();
+    } catch (err: any) {
+      if (isSessionExistsError(err)) {
+        try {
+          // Clear stale/pending Clerk session and retry login once
+          await signOut();
+          await executeAuthSubmit();
+          return;
+        } catch (retryErr: any) {
+          err = retryErr;
         }
       }
-    } catch (err: any) {
       console.error("[LoginForm] Authentication error:", err);
       const msg =
         err?.errors?.[0]?.longMessage ||
@@ -138,6 +164,24 @@ export function LoginForm({
     }
   };
 
+  const executeOAuth = async (strategy: any) => {
+    if (mode === "login") {
+      if (!signIn) return;
+      await signIn.authenticateWithRedirect({
+        strategy,
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: from,
+      });
+    } else {
+      if (!signUp) return;
+      await signUp.authenticateWithRedirect({
+        strategy,
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: from,
+      });
+    }
+  };
+
   // Handle Social OAuth redirect
   const handleOAuth = async (strategy: any) => {
     if (!isLoaded || isLoading) return;
@@ -145,22 +189,17 @@ export function LoginForm({
     setErrorMessage(null);
 
     try {
-      if (mode === "login") {
-        if (!signIn) return;
-        await signIn.authenticateWithRedirect({
-          strategy,
-          redirectUrl: "/sso-callback",
-          redirectUrlComplete: from,
-        });
-      } else {
-        if (!signUp) return;
-        await signUp.authenticateWithRedirect({
-          strategy,
-          redirectUrl: "/sso-callback",
-          redirectUrlComplete: from,
-        });
-      }
+      await executeOAuth(strategy);
     } catch (err: any) {
+      if (isSessionExistsError(err)) {
+        try {
+          await signOut();
+          await executeOAuth(strategy);
+          return;
+        } catch (retryErr: any) {
+          err = retryErr;
+        }
+      }
       console.error("[LoginForm] OAuth error:", err);
       const msg =
         err?.errors?.[0]?.longMessage ||
@@ -198,6 +237,26 @@ export function LoginForm({
                     <span className="font-medium text-foreground">{email}</span>
                   </p>
                 </div>
+
+                {hasPendingSession && (
+                  <Alert variant="info">
+                    <Info className="h-4 w-4" />
+                    <div className="flex items-center justify-between gap-2 w-full">
+                      <AlertDescription className="text-xs">
+                        An incomplete session was detected. Sign in again or reset it.
+                      </AlertDescription>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2 text-xs shrink-0"
+                        onClick={() => signOut()}
+                      >
+                        Reset Session
+                      </Button>
+                    </div>
+                  </Alert>
+                )}
 
                 {errorMessage && (
                   <Alert variant="destructive">
@@ -261,6 +320,26 @@ export function LoginForm({
                       : "Sign up to start chatting with AI and managing crawlers"}
                   </p>
                 </div>
+
+                {hasPendingSession && (
+                  <Alert variant="info">
+                    <Info className="h-4 w-4" />
+                    <div className="flex items-center justify-between gap-2 w-full">
+                      <AlertDescription className="text-xs">
+                        An incomplete session was detected. Sign in again or reset it.
+                      </AlertDescription>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2 text-xs shrink-0"
+                        onClick={() => signOut()}
+                      >
+                        Reset Session
+                      </Button>
+                    </div>
+                  </Alert>
+                )}
 
                 {errorMessage && (
                   <Alert variant="destructive">

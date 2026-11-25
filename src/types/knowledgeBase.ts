@@ -51,6 +51,64 @@ export interface CrawlerSettings {
   requestDelayMs: number;
 }
 
+export type KnowledgeScope = 'PLATFORM' | 'WORKSPACE';
+export type KnowledgeBaseStatus = 'ACTIVE' | 'ARCHIVED' | 'QUARANTINED';
+export type KnowledgeSourceType = 'CRAWLER_PAGE' | 'FILE' | 'TEXT';
+export type KnowledgeDocumentStatus = 'INDEXING' | 'ACTIVE' | 'FAILED' | 'QUARANTINED';
+
+export interface KnowledgeBaseDTO {
+  id: string;
+  scope: KnowledgeScope;
+  workspaceId: string | null;
+  ownerUserId: string;
+  name: string;
+  description: string | null;
+  qdrantCollection: string;
+  retrievalDefaults?: {
+    topK?: number;
+    scoreThreshold?: number;
+  } | null;
+  status: KnowledgeBaseStatus;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    documents: number;
+    crawlers: number;
+  };
+}
+
+export interface KnowledgeDocumentDTO {
+  id: string;
+  knowledgeBaseId: string;
+  workspaceId: string | null;
+  sourceType: KnowledgeSourceType;
+  sourceRefId: string | null;
+  title: string;
+  uri: string | null;
+  contentHash: string;
+  chunkCount: number;
+  status: KnowledgeDocumentStatus;
+  metadata?: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateKnowledgeBaseDTO {
+  name: string;
+  description?: string;
+  retrievalDefaults?: {
+    topK?: number;
+    scoreThreshold?: number;
+  };
+}
+
+export interface IngestTextDocumentDTO {
+  title: string;
+  content: string;
+  uri?: string;
+  metadata?: Record<string, unknown>;
+}
+
 export interface Crawler {
   id: string;
   name: string;
@@ -62,6 +120,9 @@ export interface Crawler {
   settings?: CrawlerSettings;
   enabled: boolean;
   isRunning: boolean;
+  scope?: KnowledgeScope;
+  workspaceId?: string | null;
+  knowledgeBaseId?: string | null;
   createdAt: string;
   updatedAt: string;
   _count?: {
@@ -82,6 +143,7 @@ export interface CreateCrawlerDto {
   requestTimeoutMs?: number;
   requestDelayMs?: number;
   enabled?: boolean;
+  knowledgeBaseId?: string;
 }
 
 export interface UpdateCrawlerDto extends Partial<CreateCrawlerDto> {}

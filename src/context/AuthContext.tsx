@@ -1,5 +1,10 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
-import { useAuth as useClerkAuth, useUser as useClerkUser, useClerk } from '@clerk/react';
+import {
+  useAuth as useClerkAuth,
+  useUser as useClerkUser,
+  useSession as useClerkSession,
+  useClerk,
+} from '@clerk/react';
 import apiClient from '../api/client';
 
 export type AppUser = ReturnType<typeof useClerkUser>['user'];
@@ -7,7 +12,13 @@ export type AppUser = ReturnType<typeof useClerkUser>['user'];
 export interface AuthContextType {
   isLoaded: boolean;
   isSignedIn: boolean;
+  hasPendingSession: boolean;
+  sessionStatus: string | null;
   userId: string | null;
+  orgId: string | null;
+  orgRole: string | null;
+  orgPermissions: string[];
+  isOrganization: boolean;
   user: AppUser;
   token: string | null;
   getToken: (options?: { template?: string; skipCache?: boolean }) => Promise<string | null>;
@@ -23,8 +34,18 @@ const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
  * Internal provider that runs within ClerkProvider context when Clerk is configured.
  */
 const ClerkAuthConsumer: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isLoaded, isSignedIn, userId, orgId, getToken: clerkGetToken, signOut: clerkSignOut } = useClerkAuth();
+  const {
+    isLoaded,
+    isSignedIn,
+    userId,
+    orgId,
+    orgRole,
+    has,
+    getToken: clerkGetToken,
+    signOut: clerkSignOut,
+  } = useClerkAuth();
   const { user } = useClerkUser();
+  const { session } = useClerkSession();
   const clerk = useClerk();
   const [token, setToken] = useState<string | null>(null);
 
@@ -80,14 +101,20 @@ const ClerkAuthConsumer: React.FC<{ children: React.ReactNode }> = ({ children }
     () => ({
       isLoaded: isLoaded ?? false,
       isSignedIn: isSignedIn ?? false,
+      hasPendingSession: session?.status === 'pending',
+      sessionStatus: session?.status ?? null,
       userId: userId ?? null,
+      orgId: orgId ?? null,
+      orgRole: orgRole ?? null,
+      orgPermissions: [],
+      isOrganization: Boolean(orgId),
       user: user ?? null,
       token,
       getToken,
       signOut,
       openUserProfile,
     }),
-    [isLoaded, isSignedIn, userId, user, token, getToken, signOut, openUserProfile]
+    [isLoaded, isSignedIn, session?.status, userId, orgId, orgRole, has, user, token, getToken, signOut, openUserProfile]
   );
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
@@ -101,7 +128,13 @@ const FallbackAuthProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     () => ({
       isLoaded: true,
       isSignedIn: false,
+      hasPendingSession: false,
+      sessionStatus: null,
       userId: null,
+      orgId: null,
+      orgRole: null,
+      orgPermissions: [],
+      isOrganization: false,
       user: null,
       token: null,
       getToken: async () => null,
